@@ -96,7 +96,7 @@ Strategy "Default"
     ComplementPer 8 Regions  // vanilla: 10
       "Airport" x 1
 
-    ComplementPer 7 Regions
+    Optional ComplementPer 7 Regions // vanilla: mandatory
       "Satellite"
 
     Optional ComplementPer 5 RegionGDP Max 2
@@ -148,7 +148,7 @@ Strategy "Submarines"
     ComplementPer 8 Regions  // vanilla: 10
       "Airport" x 1
 
-    ComplementPer 7 Regions
+    Optional ComplementPer 7 Regions // vanilla: mandatory
       "Satellite"
 
     Optional ComplementPer 5 RegionGDP Max 2
@@ -200,7 +200,7 @@ Strategy "Airforce"
     ComplementPer 8 Regions  // vanilla: 10
       "Airport" x 1
 
-    ComplementPer 7 Regions
+    Optional ComplementPer 7 Regions // vanilla: mandatory
       "Satellite"
 
     Optional ComplementPer 5 RegionGDP Max 2

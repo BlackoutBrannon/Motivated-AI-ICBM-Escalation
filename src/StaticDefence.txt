@@ -24,7 +24,7 @@
 //  Calibration (2026-09-20): a faction builds ~1 structure per 10 game-min
 //  but follows its own build order (nuclear items first), so the mandatory
 //  list is kept short: standing divisions, tactical airbases, one SAM per
-//  important region, radar, airports, satellites.  ~6-10 builds beyond a
+//  important region, radar, airports.  ~6-10 builds beyond a
 //  late-era roster; effective 2-3 game-hours given the AI's other priorities.
 //
 //  Vanilla for reference:
@@ -63,7 +63,7 @@
     ComplementPer 8 Regions  // vanilla: 10
       "Airport" x 1
 
-    ComplementPer 7 Regions
+    Optional ComplementPer 7 Regions // vanilla: mandatory
       "Satellite"
 
     Optional ComplementPer 5 RegionGDP Max 2

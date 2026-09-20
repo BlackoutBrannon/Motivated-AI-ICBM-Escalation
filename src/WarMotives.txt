@@ -62,8 +62,12 @@ def int WAR_THRESHOLD       = 100    // score needed to release the leash
 def int RANDOM_FUDGE        = 20     // 0..N random points added each eval (no clockwork)
 def int DEBUG_MESSAGES      = 1      // 0 = silent, 1 = best-scoring rival per faction per eval, 2 = every rival
 def string DEBUG_WATCH      = "United States" // with DEBUG 1, this rival's line is always printed too
-def int RELEASE_MODE        = 1      // how a decided war is opened: 1 = LimitedAttack (this faction only,
-                                     // limited escalation), 2 = AttackFaction (force the full global attack)
+// How wars are opened.  1 = LimitedAttack: a limited operation against that
+// faction only, re-issued every evaluation while at war.  2 = AttackFaction:
+// the engine's full war against that faction - the only mode in which it
+// actually plans a ground INVASION (limited operations never do).
+def int DECIDED_WAR_MODE    = 2      // a war the motive score decided on
+def int RETALIATION_MODE    = 1      // hitting back at someone who attacked us
 
 // factions never leashed nor scored.  Deliberately EMPTY: a faction left out
 // of the leash becomes the only legal outlet for the engine's war readiness
@@ -144,6 +148,7 @@ def set RivalGrievance    // parallel: current grievance points
 def set RivalCoverage     // parallel: our intel coverage of them at last eval (%)
 def set RivalBorderDivs   // parallel: their visible divisions on our border at last eval
 def set Released          // ids we have taken off the leash
+def set TotalWar          // subset of Released opened with AttackFaction
 def set Leashed           // ids we have blocked
 
 def int MyPrevPower = -1
@@ -293,11 +298,14 @@ BLOCK ReassertLeash()
   end
 END
 
-BLOCK Release(int FactionID, string Reason)
+BLOCK ReleaseWith(int FactionID, string Reason, int Mode)
   if (not (FactionID in Released))
     def string TargetName = FACTION_NAME(FactionID)
     Released+=FactionID
     Leashed-=FactionID
+    if (Mode==2)
+      TotalWar+=FactionID
+    end
 
     // Probe results (2026-09-20, read from saves):
     //   AllowAttack X    - does NOTHING in this build
@@ -305,7 +313,7 @@ BLOCK Release(int FactionID, string Reason)
     //   AttackFaction X  - clears X's block bit, declares war, forces global attack
     //   Declare War X    - declares war but X stays blocked
     // So "releasing the leash" IS the declaration of war.
-    if (RELEASE_MODE==2)
+    if (Mode==2)
       AttackFaction TargetName
     else
       LimitedAttack TargetName
@@ -320,6 +328,16 @@ BLOCK Release(int FactionID, string Reason)
   end
 END
 
+// decided by the motive score
+BLOCK Release(int FactionID, string Reason)
+  ReleaseWith(FactionID, Reason, DECIDED_WAR_MODE)
+END
+
+// hitting back
+BLOCK Retaliate(int FactionID, string Reason)
+  ReleaseWith(FactionID, Reason, RETALIATION_MODE)
+END
+
 // Someone attacked our units.  Being attacked does NOT put us at war by
 // itself - the engine expects the victim's AI to declare war, and our leash
 // stops it from doing that.  So drop the leash on the attacker and let the
@@ -329,7 +347,7 @@ END
 BLOCK OnAttackedBy(string AttackerName)
   def int A = FACTION_ID(AttackerName)
   if (A!=SelfID AND not (A in Released))
-    Release(A, "attacked us")
+    Retaliate(A, "attacked us")
   end
 END
 
@@ -343,7 +361,7 @@ BLOCK OnHostilities()
   ForEach int T in Rivals
     if (not (T in Released))
       if (ENEMIES(SelfID, T))
-        Release(T, "at war")
+        Retaliate(T, "at war")
       end
     end
   end
@@ -450,7 +468,7 @@ BLOCK EvaluateRivals()
     if (T in Released)
       if (ENEMIES(SelfID, T))
         def string TNameWar = FACTION_NAME(T)
-        if (RELEASE_MODE==2)
+        if (T in TotalWar)
           AttackFaction TNameWar
         else
           LimitedAttack TNameWar
@@ -477,7 +495,7 @@ BLOCK EvaluateRivals()
     //      the leash must be off (covers a missed WAR_STARTED event)
     if (not (T in Released))
       if (ENEMIES(SelfID, T))
-        Release(T, "at war")
+        Retaliate(T, "at war")
       end
     end
 
