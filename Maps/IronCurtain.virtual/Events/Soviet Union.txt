@@ -464,7 +464,6 @@ BLOCK EvaluateRivals()
   end
 
   def set MyAllies = GET_PERMANENT_ALLIES(SelfID)
-  def int Committed = SIZE_OF(Released)
 
   def set NewPower
   def set NewStreak
@@ -746,7 +745,9 @@ BLOCK EvaluateRivals()
       end
     end
 
-    // ---- already committed elsewhere
+    // ---- already committed elsewhere (read live: a release earlier in this
+    //      same pass must count against every rival evaluated after it)
+    def int Committed = SIZE_OF(Released)
     if (Committed>0 AND not (T in Released))
       Score = Score - COMMITTED_POINTS
       Why = Why + " committed"
