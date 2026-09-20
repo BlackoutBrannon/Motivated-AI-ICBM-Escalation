@@ -1,0 +1,3 @@
+# keep the game-facing text files exactly as written (LF); no CRLF rewriting on checkout
+* text=auto eol=lf
+*.png binary
