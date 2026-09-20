@@ -558,6 +558,8 @@ BLOCK EvaluateRivals()
       if (Coverage>=LANDGRAB_MIN_COVERAGE_PCT)
         def int BestPct = 0
         def string BestRegion = ""
+        def string BestDetail = ""
+        def int BestMine = 0
         ForEach string R in TheirBorder
           def set ThisRegion = {R}
           def int TheirHere = DivisionsInRegions(T, ThisRegion)
@@ -584,15 +586,26 @@ BLOCK EvaluateRivals()
             if (Pct>BestPct)
               BestPct = Pct
               BestRegion = R
+              BestDetail = MineAdjacent + "v" + TheirHere + "+" + TheirReinf + "/2"
             end
+          end
+          if (MineAdjacent>BestMine)
+            BestMine = MineAdjacent
           end
         end
         if (BestPct>=LANDGRAB_RATIO_PCT)
           Score = Score + LANDGRAB_POINTS
-          Why = Why + " landgrab(" + BestRegion + " " + BestPct + "%)"
+          Why = Why + " landgrab(" + BestRegion + " " + BestPct + "% " + BestDetail + ")"
           Territorial = 1
           if (BestPct>=LANDGRAB_BONUS_PCT)
             Score = Score + LANDGRAB_BONUS
+          end
+        else
+          // diagnostics: why not?  (mine-adjacent v their-garrison + reinforcements/2)
+          if (BestPct>0)
+            Why = Why + " spot(" + BestRegion + " " + BestPct + "% " + BestDetail + ")"
+          else
+            Why = Why + " no-spot(max " + BestMine + " adjacent)"
           end
         end
       end
