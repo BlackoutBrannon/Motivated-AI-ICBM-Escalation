@@ -23,8 +23,9 @@ faction* when an opportunity and a reason coincide.
 | Blind | −40 | We can see fewer than half their divisions |
 | Committed | −40 | We already chose a war elsewhere |
 
-100 points opens a **limited war against that faction only**. Opportunity
-alone can never reach 100 — a thin border needs a second reason.
+100 points opens a **war against that faction only** — the engine's full
+war, invasion included, but aimed at one target. Opportunity alone can never
+reach 100: a thin border needs a second reason.
 
 **Intel matters.** Everything the AI knows about a rival comes from what its
 radars, satellites, spy planes and spies can actually see. A rival it cannot
@@ -33,7 +34,8 @@ assess. Shooting down spy planes and keeping your army out of radar coverage
 are real defensive measures.
 
 **Being attacked is answered immediately.** Any faction that is attacked
-drops its restraint against the attacker at once.
+hits back at once with a rolling series of limited operations — proportionate,
+and never an invasion by itself.
 
 Also included:
 
