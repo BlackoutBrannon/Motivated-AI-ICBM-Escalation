@@ -335,11 +335,18 @@ BLOCK ReleaseWith(int FactionID, string Reason, int Mode)
     //   AttackFaction X  - clears X's block bit, declares war, forces global attack
     //   Declare War X    - declares war but X stays blocked
     // So "releasing the leash" IS the declaration of war.
-    if (Mode==2)
+    // ENGINE: one war mode per faction, last command wins - a LimitedAttack
+    // issued for a retaliation clears an AttackFaction already in force
+    // against someone else (seen in a save: NATO's full war on the US was
+    // reset by its limited replies to two other attackers).  So a faction
+    // with ANY full war fights ALL its wars fully.
+    if (SIZE_OF(TotalWar)>0)
       AttackFaction TargetName
-      AllowInvasion TargetName
     else
       LimitedAttack TargetName
+    end
+    if (Mode==2)
+      AllowInvasion TargetName
     end
     ReassertLeash()
 
@@ -493,22 +500,6 @@ BLOCK EvaluateRivals()
     def int Territorial = 0   // landgrab / occupier fired this evaluation
     def int AllyWar = 0       // ally-at-war fired
     def int Provoked = 0      // new grievance added this evaluation
-
-    // A war we already decided on: LimitedAttack is a ONE-SHOT operation in
-    // this engine (seen in saves: the block bit and LimitedAttack bit are
-    // restored once the strike is over).  Re-issue it every evaluation while
-    // we are still at war, so a decided war is a rolling series of limited
-    // operations rather than a single raid.
-    if (T in Released)
-      if (ENEMIES(SelfID, T))
-        def string TNameWar = FACTION_NAME(T)
-        if (T in TotalWar)
-          AttackFaction TNameWar
-        else
-          LimitedAttack TNameWar
-        end
-      end
-    end
 
     // A permanent ally (alliances can form mid-game) is never scored or
     // released; its bookkeeping still ticks along below.
@@ -814,10 +805,29 @@ END
 
 // Periodic entry point: first call discovers the rivals (units exist by then),
 // every later call scores them.
+// LimitedAttack and AttackFaction are ONE-SHOT orders in this engine (the
+// block bit and mode bits are restored once the operation is over), so the
+// faction's war mode is re-issued every evaluation for every current enemy -
+// in ONE pass after scoring, so nothing clobbers it mid-evaluation.  One mode
+// per faction: full if any war was opened for territorial reasons.
+BLOCK ReissueWars()
+  ForEach int T in Released
+    if (ENEMIES(SelfID, T))
+      def string TNameWar = FACTION_NAME(T)
+      if (SIZE_OF(TotalWar)>0)
+        AttackFaction TNameWar
+      else
+        LimitedAttack TNameWar
+      end
+    end
+  end
+END
+
 BLOCK EvaluateWarMotives()
   DiscoverRivals()
   if (Initialised==1)
     EvaluateRivals()
+    ReissueWars()
     ReassertLeash()
   end
 END
