@@ -119,7 +119,10 @@ def int STRONGER_POINTS     = 70     // subtracted
 def int MUCH_STRONGER_PCT   = 200
 def int MUCH_STRONGER_POINTS = 60    // subtracted on top
 
-def int DISTRACTED_POINTS   = 30     // rival is at war with a third party
+def int DISTRACTED_POINTS   = 25     // rival is at war with a third party...
+def int DISTRACTED_MIN_EVALS = 2     // ...and has been for at least this many evaluations.  A war that
+                                     // started this tick is not yet a distraction; this stops one incident
+                                     // cascading into three declarations in the same evaluation.
 def int ALLY_AT_WAR_POINTS  = 45     // rival is at war with one of our permanent allies
 def int OCCUPIER_POINTS     = 50     // rival holds regions originally ours or an ally's
 def int RIVALRY_POINTS      = 15     // rival is on the map's DefaultEnemy list (MAP_RIVALS, stamped by build.ps1)
@@ -159,6 +162,7 @@ def set RivalGrowthStreak // parallel: consecutive evals in which they out-grew 
 def set RivalGrievance    // parallel: current grievance points
 def set RivalCoverage     // parallel: our intel coverage of them at last eval (%)
 def set RivalBorderDivs   // parallel: their visible divisions on our border at last eval
+def set RivalWarStreak    // parallel: consecutive evals they have been at war with a third party
 def set Released          // ids we have taken off the leash
 def set TotalWar          // subset of Released opened with AttackFaction
 def set Leashed           // ids we have blocked
@@ -415,6 +419,7 @@ BLOCK DiscoverRivals()
           RivalGrievance+=0
           RivalCoverage+=0
           RivalBorderDivs+=0
+          RivalWarStreak+=0
           Added++
 
           Leash(O)
@@ -462,6 +467,7 @@ BLOCK EvaluateRivals()
   def set NewGrievance
   def set NewCoverage
   def set NewBorderDivs
+  def set NewWarStreak
 
   // for the one-line debug summary
   def int BestScore = -9999
@@ -478,6 +484,7 @@ BLOCK EvaluateRivals()
     def int TGrievance = GET_ELEMENT(RivalGrievance, idx)
     def int TPrevCoverage = GET_ELEMENT(RivalCoverage, idx)
     def int TPrevBorderDivs = GET_ELEMENT(RivalBorderDivs, idx)
+    def int TWarStreak = GET_ELEMENT(RivalWarStreak, idx)
 
     def int TPower = MilitaryPower(T)
     def int TGrowth = TPower - TPrevPower
@@ -690,13 +697,20 @@ BLOCK EvaluateRivals()
     def set TheirEnemies = GET_ENEMIES(T)
     TheirEnemies-=SelfID
     if (SIZE_OF(TheirEnemies)>0)
-      Score = Score + DISTRACTED_POINTS
-      Why = Why + " distracted"
+      TWarStreak++
+      if (TWarStreak>=DISTRACTED_MIN_EVALS)
+        Score = Score + DISTRACTED_POINTS
+        Why = Why + " distracted"
+      else
+        Why = Why + " (at-war " + TWarStreak + "/" + DISTRACTED_MIN_EVALS + ")"
+      end
       if (AtWarWithOurAlly(TheirEnemies, MyAllies)==1)
         Score = Score + ALLY_AT_WAR_POINTS
         Why = Why + " ally-at-war"
         AllyWar = 1
       end
+    else
+      TWarStreak = 0
     end
 
     // ---- they sit on our land or an ally's
@@ -778,6 +792,7 @@ BLOCK EvaluateRivals()
     NewGrievance+=TGrievance
     NewCoverage+=Coverage
     NewBorderDivs+=TheirBorderDivs
+    NewWarStreak+=TWarStreak
 
     idx++
   end
@@ -787,6 +802,7 @@ BLOCK EvaluateRivals()
   RivalGrievance = NewGrievance
   RivalCoverage = NewCoverage
   RivalBorderDivs = NewBorderDivs
+  RivalWarStreak = NewWarStreak
   MyPrevPower = MyPower
 
   if (DEBUG_MESSAGES==1 AND BestScore>-9999)
