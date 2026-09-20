@@ -12,7 +12,7 @@ faction* when an opportunity and a reason coincide.
 
 | Motive | Points | What it means |
 |---|---|---|
-| Land grab | +40 (+20 at ≥300%) | A specific border region of theirs is thinly held compared with our divisions next to it (their reinforcements one province away count at half) |
+| Land grab | +40 (+20 at ≥300%) | A specific border region of theirs is thinly held compared with what we can bring: our divisions next to it plus 30% of our whole army by air and sea (their reinforcements one region away count at half) |
 | Outpaced | +45 | Their military has out-grown ours for three evaluations running |
 | Distracted | +30 | They are already at war with someone else |
 | Ally at war | +45 | They are fighting one of our permanent allies |
