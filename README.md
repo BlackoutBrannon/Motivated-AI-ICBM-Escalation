@@ -37,11 +37,10 @@ drops its restraint against the attacker at once.
 
 Also included:
 
-- a mandatory home garrison (standing divisions, SAMs, coastal guns, radar,
-  satellites) before an AI can launch an invasion — roughly 2–3 game-hours of
-  building from the decision to war
 - higher war-readiness thresholds on every difficulty
 - a 30-minute warm-up at game start during which no scored war is declared
+- (optional, off by default) a stricter home garrison before an AI can
+  invade — `$StricterGarrison` in `build.ps1`
 
 ## Install
 
@@ -53,10 +52,10 @@ Currently supports the **Iron Curtain** map.
 
 ```
 src/WarMotives.txt      the motive script (edit this)
-src/StaticDefence.txt   the garrison rules (edit this)
+src/StaticDefence.txt   optional stricter garrison rules (off by default)
 build.ps1               stamps both into the files the game actually loads
 build_probe.ps1         diagnostic build used to reverse-engineer script commands
-AI/                     generated: limits.txt + StrategyConquest.txt with garrison inlined
+AI/                     limits.txt (readiness thresholds); StrategyConquest.txt only with the garrison switch on
 Maps/IronCurtain.virtual/Events/   generated: one script copy per faction
 ```
 
@@ -73,9 +72,9 @@ reasoning on screen every evaluation; set it to `0` for normal play.
 ## Why the generated copies
 
 Files the game reaches through `USE` resolve to the base game, so a mod
-cannot override them. The map's per-faction event files and
-`AI/StrategyConquest.txt` are opened directly, so the build script stamps the
-shared source into each of them.
+cannot override them. The map's per-faction event files (and
+`AI/StrategyConquest.txt`) are opened directly, so the build script stamps
+the shared source into each of them.
 
 ## Engine findings (verified from save files)
 
