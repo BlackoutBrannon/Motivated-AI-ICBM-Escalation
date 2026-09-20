@@ -446,6 +446,22 @@ BLOCK EvaluateRivals()
     def int Score = 0
     def string Why = ""
 
+    // A war we already decided on: LimitedAttack is a ONE-SHOT operation in
+    // this engine (seen in saves: the block bit and LimitedAttack bit are
+    // restored once the strike is over).  Re-issue it every evaluation while
+    // we are still at war, so a decided war is a rolling series of limited
+    // operations rather than a single raid.
+    if (T in Released)
+      if (ENEMIES(SelfID, T))
+        def string TNameWar = FACTION_NAME(T)
+        if (RELEASE_MODE==2)
+          AttackFaction TNameWar
+        else
+          LimitedAttack TNameWar
+        end
+      end
+    end
+
     // A permanent ally (alliances can form mid-game) is never scored or
     // released; its bookkeeping still ticks along below.
     def int IsAlly = 0

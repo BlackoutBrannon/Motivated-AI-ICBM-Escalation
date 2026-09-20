@@ -76,7 +76,9 @@ Strategy "Default"
     Minimal  // the baseline force required before ANY invasion is considered
       "ArmyBaseDef" x 2
       "ArmyGroupDef" x 2       // standing home-defence divisions (vanilla: none)
-      "Carrier" x 1
+      // vanilla also required "Carrier" x 1 here.  Dropped: the AI does not
+      // prioritise building one (saves show SSBNs and resupply ships queued
+      // ahead of it for over an hour), so it silently blocked every invasion.
       "Patrol" x 2
       "HiddenPatrol" x 1
 
@@ -97,14 +99,14 @@ Strategy "Default"
     ComplementPer 7 Regions
       "Satellite"
 
-    ComplementPer 5 RegionGDP Max 2 // vanilla: Optional
+    Optional ComplementPer 5 RegionGDP Max 2
       "SecurityCheckpoint" x 1
 
     ComplementPer 10 RegionGDP Once // vanilla: Optional x2; x1 keeps the gate at ~2-3h
       "SAMSite" x 1
 
-    ComplementPer 1 WaterBorderRegion Max 4 // vanilla: Optional, uncapped; capped so
-      "BestCoastalDefence" x 1                // long coastlines (NATO, China) don't add 8+ builds
+    Optional ComplementPer 1 WaterBorderRegion Max 4
+      "BestCoastalDefence" x 1
 
     Coverage Dist 2000 By "Air_Transport"
       "ArmyBaseDef" x 1
@@ -126,7 +128,9 @@ Strategy "Submarines"
     Minimal  // the baseline force required before ANY invasion is considered
       "ArmyBaseDef" x 2
       "ArmyGroupDef" x 2       // standing home-defence divisions (vanilla: none)
-      "Carrier" x 1
+      // vanilla also required "Carrier" x 1 here.  Dropped: the AI does not
+      // prioritise building one (saves show SSBNs and resupply ships queued
+      // ahead of it for over an hour), so it silently blocked every invasion.
       "Patrol" x 2
       "HiddenPatrol" x 1
 
@@ -147,14 +151,14 @@ Strategy "Submarines"
     ComplementPer 7 Regions
       "Satellite"
 
-    ComplementPer 5 RegionGDP Max 2 // vanilla: Optional
+    Optional ComplementPer 5 RegionGDP Max 2
       "SecurityCheckpoint" x 1
 
     ComplementPer 10 RegionGDP Once // vanilla: Optional x2; x1 keeps the gate at ~2-3h
       "SAMSite" x 1
 
-    ComplementPer 1 WaterBorderRegion Max 4 // vanilla: Optional, uncapped; capped so
-      "BestCoastalDefence" x 1                // long coastlines (NATO, China) don't add 8+ builds
+    Optional ComplementPer 1 WaterBorderRegion Max 4
+      "BestCoastalDefence" x 1
 
     Coverage Dist 2000 By "Air_Transport"
       "ArmyBaseDef" x 1
@@ -176,7 +180,9 @@ Strategy "Airforce"
     Minimal  // the baseline force required before ANY invasion is considered
       "ArmyBaseDef" x 2
       "ArmyGroupDef" x 2       // standing home-defence divisions (vanilla: none)
-      "Carrier" x 1
+      // vanilla also required "Carrier" x 1 here.  Dropped: the AI does not
+      // prioritise building one (saves show SSBNs and resupply ships queued
+      // ahead of it for over an hour), so it silently blocked every invasion.
       "Patrol" x 2
       "HiddenPatrol" x 1
 
@@ -197,14 +203,14 @@ Strategy "Airforce"
     ComplementPer 7 Regions
       "Satellite"
 
-    ComplementPer 5 RegionGDP Max 2 // vanilla: Optional
+    Optional ComplementPer 5 RegionGDP Max 2
       "SecurityCheckpoint" x 1
 
     ComplementPer 10 RegionGDP Once // vanilla: Optional x2; x1 keeps the gate at ~2-3h
       "SAMSite" x 1
 
-    ComplementPer 1 WaterBorderRegion Max 4 // vanilla: Optional, uncapped; capped so
-      "BestCoastalDefence" x 1                // long coastlines (NATO, China) don't add 8+ builds
+    Optional ComplementPer 1 WaterBorderRegion Max 4
+      "BestCoastalDefence" x 1
 
     Coverage Dist 2000 By "Air_Transport"
       "ArmyBaseDef" x 1

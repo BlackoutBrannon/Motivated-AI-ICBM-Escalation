@@ -21,9 +21,11 @@
 //    - makes the SAM / coastal / checkpoint complements mandatory instead of
 //      Optional
 //
-//  Calibration (2026-09-20): a faction builds ~1 structure per 10 game-min,
-//  so the items required beyond a late-era starting roster should number
-//  ~12-18 to give the intended 2-3 game-hours from decision to invasion.
+//  Calibration (2026-09-20): a faction builds ~1 structure per 10 game-min
+//  but follows its own build order (nuclear items first), so the mandatory
+//  list is kept short: standing divisions, tactical airbases, one SAM per
+//  important region, radar, airports, satellites.  ~6-10 builds beyond a
+//  late-era roster; effective 2-3 game-hours given the AI's other priorities.
 //
 //  Vanilla for reference:
 //    Minimal: ArmyBaseDef x1, Carrier x1, Patrol x2, HiddenPatrol x1
@@ -41,7 +43,9 @@
     Minimal  // the baseline force required before ANY invasion is considered
       "ArmyBaseDef" x 2
       "ArmyGroupDef" x 2       // standing home-defence divisions (vanilla: none)
-      "Carrier" x 1
+      // vanilla also required "Carrier" x 1 here.  Dropped: the AI does not
+      // prioritise building one (saves show SSBNs and resupply ships queued
+      // ahead of it for over an hour), so it silently blocked every invasion.
       "Patrol" x 2
       "HiddenPatrol" x 1
 
@@ -62,14 +66,14 @@
     ComplementPer 7 Regions
       "Satellite"
 
-    ComplementPer 5 RegionGDP Max 2 // vanilla: Optional
+    Optional ComplementPer 5 RegionGDP Max 2
       "SecurityCheckpoint" x 1
 
     ComplementPer 10 RegionGDP Once // vanilla: Optional x2; x1 keeps the gate at ~2-3h
       "SAMSite" x 1
 
-    ComplementPer 1 WaterBorderRegion Max 4 // vanilla: Optional, uncapped; capped so
-      "BestCoastalDefence" x 1                // long coastlines (NATO, China) don't add 8+ builds
+    Optional ComplementPer 1 WaterBorderRegion Max 4
+      "BestCoastalDefence" x 1
 
     Coverage Dist 2000 By "Air_Transport"
       "ArmyBaseDef" x 1
