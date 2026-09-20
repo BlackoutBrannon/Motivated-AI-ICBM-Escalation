@@ -23,9 +23,13 @@ faction* when an opportunity and a reason coincide.
 | Blind | −40 | We can see fewer than half their divisions |
 | Committed | −40 | We already chose a war elsewhere |
 
-100 points opens a **war against that faction only** — the engine's full
-war, invasion included, but aimed at one target. Opportunity alone can never
-reach 100: a thin border needs a second reason.
+100 points opens a war **against that faction only**, and **the motive picks
+the kind of war**: territorial reasons (land grab, occupied land) or backing
+an ally open the engine's full war, invasion included; punitive reasons
+(grievances, being out-built) open a limited war of rolling strikes with
+invasion still barred. A limited war escalates to invasion if a territorial
+opportunity later clears the threshold. Opportunity alone can never reach
+100: a thin border needs a second reason.
 
 **Intel matters.** Everything the AI knows about a rival comes from what its
 radars, satellites, spy planes and spies can actually see. A rival it cannot

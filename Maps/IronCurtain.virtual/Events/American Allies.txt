@@ -66,11 +66,19 @@ def int WAR_THRESHOLD       = 100    // score needed to release the leash
 def int RANDOM_FUDGE        = 20     // 0..N random points added each eval (no clockwork)
 def int DEBUG_MESSAGES      = 1      // 0 = silent, 1 = best-scoring rival per faction per eval, 2 = every rival
 def string DEBUG_WATCH      = "United States" // with DEBUG 1, this rival's line is always printed too
-// How wars are opened.  1 = LimitedAttack: a limited operation against that
-// faction only, re-issued every evaluation while at war.  2 = AttackFaction:
-// the engine's full war against that faction - the only mode in which it
-// actually plans a ground INVASION (limited operations never do).
-def int DECIDED_WAR_MODE    = 2      // a war the motive score decided on
+// How wars are fought.  1 = LimitedAttack: a limited operation against that
+// faction only, re-issued every evaluation while at war, invasion stays
+// blocked.  2 = AttackFaction: the engine's full war against that faction -
+// the only mode in which it plans a ground INVASION.
+//
+// THE MOTIVE PICKS THE MODE.  Territorial reasons (land grab, occupied land)
+// mean we want the ground -> invasion.  Punitive reasons (grievances, being
+// out-built) mean we want to hurt or set back -> limited strikes.  Backing an
+// ally means joining their war properly -> full.  A limited war escalates to
+// invasion later if a territorial motive clears the threshold on its own.
+def int MODE_TERRITORIAL    = 2      // landgrab / occupier
+def int MODE_ALLY_AT_WAR    = 2      // joining a permanent ally's war
+def int MODE_PUNITIVE       = 1      // grievance / outpaced / anything else
 def int RETALIATION_MODE    = 1      // hitting back at someone who attacked us
 
 // factions never leashed nor scored.  Deliberately EMPTY: a faction left out
@@ -303,7 +311,13 @@ BLOCK ReassertLeash()
 END
 
 BLOCK ReleaseWith(int FactionID, string Reason, int Mode)
-  if (not (FactionID in Released))
+  // a war already being fought in limited mode can be escalated to full
+  def int Escalate = 0
+  if ((FactionID in Released) AND Mode==2 AND not (FactionID in TotalWar))
+    Escalate = 1
+  end
+
+  if ((not (FactionID in Released)) OR Escalate==1)
     def string TargetName = FACTION_NAME(FactionID)
     Released+=FactionID
     Leashed-=FactionID
@@ -319,22 +333,29 @@ BLOCK ReleaseWith(int FactionID, string Reason, int Mode)
     // So "releasing the leash" IS the declaration of war.
     if (Mode==2)
       AttackFaction TargetName
+      AllowInvasion TargetName
     else
       LimitedAttack TargetName
     end
-    AllowInvasion TargetName
     ReassertLeash()
 
     if (DEBUG_MESSAGES>=1)
       def string MyName = FACTION_NAME(SelfID)
-      Message MyName + " declares war on " + TargetName + ": " + Reason Position TopLeft
+      def string Verb = " opens limited war on "
+      if (Mode==2)
+        Verb = " declares war on "
+      end
+      if (Escalate==1)
+        Verb = " escalates to invasion of "
+      end
+      Message MyName + Verb + TargetName + ": " + Reason Position TopLeft
     end
   end
 END
 
-// decided by the motive score
-BLOCK Release(int FactionID, string Reason)
-  ReleaseWith(FactionID, Reason, DECIDED_WAR_MODE)
+// decided by the motive score; the mode was chosen from the motives present
+BLOCK Release(int FactionID, string Reason, int Mode)
+  ReleaseWith(FactionID, Reason, Mode)
 END
 
 // hitting back
@@ -463,6 +484,8 @@ BLOCK EvaluateRivals()
 
     def int Score = 0
     def string Why = ""
+    def int Territorial = 0   // landgrab / occupier fired this evaluation
+    def int AllyWar = 0       // ally-at-war fired
 
     // A war we already decided on: LimitedAttack is a ONE-SHOT operation in
     // this engine (seen in saves: the block bit and LimitedAttack bit are
@@ -571,6 +594,7 @@ BLOCK EvaluateRivals()
         if (BestPct>=LANDGRAB_RATIO_PCT)
           Score = Score + LANDGRAB_POINTS
           Why = Why + " landgrab(" + BestRegion + " " + BestPct + "%)"
+          Territorial = 1
           if (BestPct>=LANDGRAB_BONUS_PCT)
             Score = Score + LANDGRAB_BONUS
           end
@@ -645,6 +669,7 @@ BLOCK EvaluateRivals()
       if (AtWarWithOurAlly(TheirEnemies, MyAllies)==1)
         Score = Score + ALLY_AT_WAR_POINTS
         Why = Why + " ally-at-war"
+        AllyWar = 1
       end
     end
 
@@ -652,6 +677,7 @@ BLOCK EvaluateRivals()
     if (OccupiesOurSide(T, MyAllies)==1)
       Score = Score + OCCUPIER_POINTS
       Why = Why + " occupier"
+      Territorial = 1
     end
 
     // ---- old rivalry from the map
@@ -705,7 +731,16 @@ BLOCK EvaluateRivals()
     end
 
     if (Final>=WAR_THRESHOLD AND WarmedUp==1)
-      Release(T, Why)
+      def int Mode = MODE_PUNITIVE
+      if (AllyWar==1)
+        Mode = MODE_ALLY_AT_WAR
+      end
+      if (Territorial==1)
+        Mode = MODE_TERRITORIAL
+      end
+      // Release() ignores factions already released, EXCEPT to escalate a
+      // limited war to a full one when a territorial motive now carries it
+      Release(T, Why, Mode)
     end
 
     end // IsAlly==0
