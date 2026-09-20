@@ -129,10 +129,12 @@ def int COMMITTED_POINTS    = 40     // subtracted from everyone else once we re
 def int BUILDUP_RATIO_PCT   = 150    // their border divisions >=150% of ours...
 def int BUILDUP_POINTS      = 15     // ...AND they added more since last eval = mobilisation
                                      // (a big standing garrison is the status quo, not a provocation)
-def int OVERFLIGHT_POINTS   = 12     // per visible rival aircraft inside our territory, per eval
-def int OVERFLIGHT_MAX      = 36     // cap per eval
-def int GRIEVANCE_DECAY     = 10     // points lost per evaluation
+def int OVERFLIGHT_POINTS   = 8      // per visible rival aircraft inside our territory, per eval (snapshot)
+def int OVERFLIGHT_MAX      = 32     // cap per eval
+def int GRIEVANCE_DECAY     = 10     // points lost per QUIET evaluation (grudges don't fade while provoked)
 def int GRIEVANCE_MAX       = 120
+def int GRIEVANCE_SEEN_THRESHOLD = 50 // above this, the blind penalty is halved: we may not see
+                                     // their army, but we know who keeps provoking us
 
 // unit weights for "military power"
 def int W_DIVISION   = 3
@@ -484,6 +486,7 @@ BLOCK EvaluateRivals()
     def string Why = ""
     def int Territorial = 0   // landgrab / occupier fired this evaluation
     def int AllyWar = 0       // ally-at-war fired
+    def int Provoked = 0      // new grievance added this evaluation
 
     // A war we already decided on: LimitedAttack is a ONE-SHOT operation in
     // this engine (seen in saves: the block bit and LimitedAttack bit are
@@ -625,6 +628,7 @@ BLOCK EvaluateRivals()
       def int TheirPct = 100 * TheirBorderDivs / MySafe
       if (CoverageStable==1 AND TheirBorderDivs>TPrevBorderDivs AND TheirPct>=BUILDUP_RATIO_PCT)
         TGrievance = TGrievance + BUILDUP_POINTS
+        Provoked = 1
         Why = Why + " buildup(+" + (TheirBorderDivs - TPrevBorderDivs) + ")"
       end
     end
@@ -636,6 +640,7 @@ BLOCK EvaluateRivals()
     end
     if (Overflights>0)
       TGrievance = TGrievance + Overflights
+      Provoked = 1
       Why = Why + " overflights"
     end
 
@@ -668,10 +673,15 @@ BLOCK EvaluateRivals()
       end
     end
 
-    // ---- blind: poor intel coverage of them
+    // ---- blind: poor intel coverage of them (halved if they keep provoking
+    //      us - we know who they are even if we cannot count their army)
     if (INTEL_MODE==1)
       if (Coverage<BLIND_COVERAGE_PCT)
-        Score = Score - BLIND_POINTS
+        if (TGrievance>=GRIEVANCE_SEEN_THRESHOLD)
+          Score = Score - BLIND_POINTS / 2
+        else
+          Score = Score - BLIND_POINTS
+        end
         Why = Why + " blind(" + Coverage + "%)"
       end
     end
@@ -710,9 +720,11 @@ BLOCK EvaluateRivals()
     if (TGrievance>0)
       Score = Score + TGrievance
       Why = Why + " grievance(" + TGrievance + ")"
-      TGrievance = TGrievance - GRIEVANCE_DECAY
-      if (TGrievance<0)
-        TGrievance = 0
+      if (Provoked==0)
+        TGrievance = TGrievance - GRIEVANCE_DECAY
+        if (TGrievance<0)
+          TGrievance = 0
+        end
       end
     end
 
