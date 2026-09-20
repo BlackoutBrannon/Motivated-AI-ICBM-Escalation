@@ -1,0 +1,67 @@
+// ===========================================================================
+//  Less Aggressive AI  -  overrides AI/limits.txt
+// ===========================================================================
+//
+//  The AI builds up a "war readiness" value during peace and acts once that
+//  value passes the thresholds below.  HIGHER number = AI waits LONGER.
+//  Values of 1.0 or more effectively disable that behaviour (the vanilla file
+//  uses 1.5 with the comment "disabled").
+//
+//  Vanilla values for reference:
+//                     VeryEasy  Easy   Normal  Hard   VeryHard  Insane
+//   StartWar            0.15    0.125  0.10    0.075  0.075     0.075
+//   KillAllButAllies    0.4     0.35   0.3     0.25   0.25      0.25
+//   ...WithLessScore    1.5     0.75   0.65    0.55   0.55      0.55
+//   KillAll             1.5     1.5    0.85    0.75   0.75      0.75
+//
+//  This mod roughly multiplies StartWar by 2.5x and pushes the "attack
+//  everyone" thresholds much later.  Tweak the numbers to taste; the game
+//  re-reads this file on launch.
+//
+//  Meaning of each key (from the vanilla file):
+//   StartWar                       - allowed to start global attack, honors alliances,
+//                                    prefers to attack existing or default enemies
+//   KillAllButAllies               - attacks anyone who is not an ally
+//   KillAllButAlliesWithLessScore  - can attack allies that have a bigger score
+//   KillAll                        - attacks anyone
+// ===========================================================================
+
+
+[VeryEasy]
+  StartWar 0.40
+  KillAllButAllies 0.90
+  KillAllButAlliesWithLessScore 1.5 // disabled
+  KillAll 1.5 // disabled
+
+
+[Easy]
+  StartWar 0.32
+  KillAllButAllies 0.80
+  KillAllButAlliesWithLessScore 1.5 // disabled
+  KillAll 1.5 // disabled
+
+[Normal]
+  StartWar 0.25
+  KillAllButAllies 0.65
+  KillAllButAlliesWithLessScore 1.10 // disabled
+  KillAll 1.5 // disabled
+
+[Hard]
+  StartWar 0.20
+  KillAllButAllies 0.55
+  KillAllButAlliesWithLessScore 0.95
+  KillAll 1.20 // disabled
+
+[VeryHard]
+  StartWar 0.18
+  KillAllButAllies 0.50
+  KillAllButAlliesWithLessScore 0.90
+  KillAll 1.10 // disabled
+
+[Insane]
+  StartWar 0.16
+  KillAllButAllies 0.45
+  KillAllButAlliesWithLessScore 0.85
+  KillAll 1.00 // disabled
+
+END

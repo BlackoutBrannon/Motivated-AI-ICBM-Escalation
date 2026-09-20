@@ -1,0 +1,720 @@
+// ===========================================================================
+//  Less Aggressive AI  -  "War Motives" layer
+//  SOURCE FILE - not loaded by the game.  build.ps1 stamps this script into
+//  every AI faction event file of the target map (Maps/<map>.virtual/Events/)
+//  because files pulled in via USE resolve to the base game, not to mods.
+// ===========================================================================
+//
+//  IDEA
+//  The built-in AI only knows "preparing for war" and "at war".  This script
+//  adds a reason layer in front of it.  At game start every AI faction is put
+//  on a leash (BlockAttack / BlockInvasion against everyone it is not allied
+//  with).  Every few minutes it scores each rival SEPARATELY on:
+//
+//     + Land grab    : the rival's regions on our border are thinly held
+//                      compared to our own border forces
+//     + Outpaced     : the rival's MILITARY power has grown faster than ours
+//                      for several evaluations (preventive-war motive)
+//     + Distracted   : the rival is already fighting somebody else
+//     + Ally at war  : the rival is fighting one of our permanent allies
+//     + Occupier     : the rival holds regions that belong to us or an ally
+//     + Old rivalry  : the map's DefaultEnemy list (mild nudge only)
+//     + Grievance    : accumulated, decaying provocations that do NOT start a
+//                      war by themselves in the engine:
+//                        - sustained troop build-up on our shared border
+//                        - their aircraft (spy planes, AWACS...) inside our
+//                          territory
+//     - Stronger     : the rival's total military clearly outweighs ours
+//     - Blind        : our INTEL COVERAGE of the rival is poor (see below)
+//     - Committed    : we have already picked a fight with someone else
+//
+//  Direct attacks and invasions are not scored - the engine starts hostilities
+//  on those anyway.  Instead they immediately RELEASE the leash so a leashed
+//  faction can always fight back.
+//
+//  INTEL
+//  In INTEL_MODE every rival is measured by the units THIS faction can
+//  currently see (radar, satellites, spy planes, spies).  "Blind" is about
+//  coverage, not about how little we see: it compares the number of their
+//  units we can see with the number that exist.  A rival whose whole
+//  territory we watch and who really has few troops is NOT blind - it is
+//  weak, and gets invaded.  A rival we have no recon on is blind, however
+//  strong or weak it really is.
+//
+//  When one rival's score clears WAR_THRESHOLD the leash is released for THAT
+//  faction only (AllowAttack / AllowInvasion).  The engine's own readiness
+//  checks, peace timer and the garrison gates from AI/Default/StaticDefence.txt
+//  still apply after release - the script decides WHETHER and WHOM, the engine
+//  decides WHEN it is ready.  Being strong or scary does NOT protect a rival's
+//  weak neighbour: each target is judged on its own numbers.
+//
+//  All tunables are in points (ints).  100 points = threshold.
+// ===========================================================================
+
+
+// ---------------------------------------------------------------- tunables --
+
+def int EVAL_PERIOD_MIN     = 6      // game minutes between evaluations
+def int WARMUP_MIN          = 30     // no SCORED declarations before this many game minutes: units are still
+                                     // auto-deploying (~15 min) and the engine's peace timer (default 10 min)
+                                     // should be honoured.  Retaliation for being attacked is never delayed.
+def int WAR_THRESHOLD       = 100    // score needed to release the leash
+def int RANDOM_FUDGE        = 20     // 0..N random points added each eval (no clockwork)
+def int DEBUG_MESSAGES      = 1      // 0 = silent, 1 = best-scoring rival per faction per eval, 2 = every rival
+def string DEBUG_WATCH      = "United States" // with DEBUG 1, this rival's line is always printed too
+def int RELEASE_MODE        = 1      // how a decided war is opened: 1 = LimitedAttack (this faction only,
+                                     // limited escalation), 2 = AttackFaction (force the full global attack)
+
+// factions never leashed nor scored.  Deliberately EMPTY: a faction left out
+// of the leash becomes the only legal outlet for the engine's war readiness
+// (test 2: NATO, India and Pakistan all jumped on Neutral within 11 minutes).
+// Neutral is therefore leashed like everyone else and can only be invaded as
+// a scored land grab.
+def set IGNORED_FACTIONS    = {""}
+
+// intel
+def int INTEL_MODE          = 1      // 1 = count only visible enemy units, 0 = omniscient
+def int BLIND_COVERAGE_PCT  = 50     // blind if we see fewer than this % of their ground units
+def int BLIND_POINTS        = 40     // subtracted when blind
+def int LANDGRAB_MIN_COVERAGE_PCT = 50 // no land-grab assessment at all below this coverage
+
+// land grab: our border divisions vs theirs, in percent
+def int LANDGRAB_RATIO_PCT  = 150    // our divisions adjacent to the weak spot >=150% of theirs in it
+def int LANDGRAB_MIN_OWN_DIVS = 2    // ...and at least this many of ours adjacent (no grab with nothing)
+def int LANDGRAB_REINF_PCT  = 50     // their divisions in THEIR regions adjacent to the spot count this much
+                                     // (reinforcements one province away are half a garrison)
+// Design rule: opportunity alone is never a casus belli.  landgrab + rivalry
+// tops out at 40+20+15 = 75 (+20 roll = 95): it needs one more motive -
+// distracted, ally-at-war, outpaced, occupier or accumulated grievance.
+// (60/30 made the Iron Curtain a guaranteed war at the end of warm-up.)
+def int LANDGRAB_POINTS     = 40     // awarded at the ratio above
+def int LANDGRAB_BONUS_PCT  = 300    // ... and this much more if we have >=300%
+def int LANDGRAB_BONUS      = 20
+
+// outpaced: their military growth vs ours since last eval, in percent
+def int OUTPACED_PCT        = 120    // they grew >=120% of what we grew
+def int OUTPACED_MIN_GROWTH = 6      // ...and by at least this many power points (2 divisions)
+def int OUTPACED_POINTS     = 45
+def int OUTPACED_MEMORY     = 3      // consecutive evals it must persist
+def int OUTPACED_MIN_COVERAGE_PCT = 30 // growth is only assessed with at least this much intel
+def int STABLE_COVERAGE_DELTA = 5    // ...and only while coverage moved by no more than this since last eval
+
+// fear: their total military vs ours, in percent
+def int STRONGER_PCT        = 130    // they have >=130% of our power
+def int STRONGER_POINTS     = 70     // subtracted
+def int MUCH_STRONGER_PCT   = 200
+def int MUCH_STRONGER_POINTS = 60    // subtracted on top
+
+def int DISTRACTED_POINTS   = 30     // rival is at war with a third party
+def int ALLY_AT_WAR_POINTS  = 45     // rival is at war with one of our permanent allies
+def int OCCUPIER_POINTS     = 50     // rival holds regions originally ours or an ally's
+def int RIVALRY_POINTS      = 15     // rival is on the map's DefaultEnemy list (MAP_RIVALS, stamped by build.ps1)
+def int COMMITTED_POINTS    = 40     // subtracted from everyone else once we release one leash
+
+// grievance accumulators (per evaluation, decaying)
+def int BUILDUP_RATIO_PCT   = 150    // their border divisions >=150% of ours...
+def int BUILDUP_POINTS      = 15     // ...AND they added more since last eval = mobilisation
+                                     // (a big standing garrison is the status quo, not a provocation)
+def int OVERFLIGHT_POINTS   = 12     // per visible rival aircraft inside our territory, per eval
+def int OVERFLIGHT_MAX      = 36     // cap per eval
+def int GRIEVANCE_DECAY     = 10     // points lost per evaluation
+def int GRIEVANCE_MAX       = 120
+
+// unit weights for "military power"
+def int W_DIVISION   = 3
+def int W_ARMY_BASE  = 1
+def int W_SILO       = 5
+def int W_LAUNCHPAD  = 4
+def int W_MOBILE_ICBM = 4
+def int W_AIRPORT    = 4
+def int W_TAC_AIRBASE = 2
+def int W_CARRIER    = 6
+def int W_SSBN       = 5
+def int W_SUB        = 3
+def int W_CRUISER    = 2
+def int W_DESTROYER  = 1
+
+
+// ------------------------------------------------------------------- state --
+
+def set Rivals            // faction ids we track (everyone with units, not us, not permanent allies)
+def set RivalPower        // parallel to Rivals: their (visible) power at last eval
+def set RivalGrowthStreak // parallel: consecutive evals in which they out-grew us
+def set RivalGrievance    // parallel: current grievance points
+def set RivalCoverage     // parallel: our intel coverage of them at last eval (%)
+def set RivalBorderDivs   // parallel: their visible divisions on our border at last eval
+def set Released          // ids we have taken off the leash
+def set Leashed           // ids we have blocked
+
+def int MyPrevPower = -1
+def int Initialised = 0
+def int EvalCount = 0
+
+
+// --------------------------------------------------------------- helpers --
+
+// Count a faction's units of one type.  In INTEL_MODE a rival's units only
+// count if this faction can currently see them; our own always count.
+BLOCK int CountType(int FactionID, string UnitType)
+  def set Found
+  if (INTEL_MODE==1 AND FactionID!=SelfID)
+    select units OWNER==FactionID AND PRINCIPAL_TYPE==UnitType AND VISIBLE_FOR(SelfID) into Found
+  else
+    select units OWNER==FactionID AND PRINCIPAL_TYPE==UnitType into Found
+  end
+  return SIZE_OF(Found)
+END
+
+// Weighted military power of a faction (as far as we can see it)
+BLOCK int MilitaryPower(int FactionID)
+  def int Power = 0
+  Power = Power + W_DIVISION    * CountType(FactionID, "Army_Division")
+  Power = Power + W_ARMY_BASE   * CountType(FactionID, "Army_Base")
+  Power = Power + W_SILO        * CountType(FactionID, "Missile_Silo")
+  Power = Power + W_LAUNCHPAD   * CountType(FactionID, "ICBM_Launchpad")
+  Power = Power + W_MOBILE_ICBM * CountType(FactionID, "Mobile_ICBM")
+  Power = Power + W_AIRPORT     * CountType(FactionID, "Airport")
+  Power = Power + W_AIRPORT     * CountType(FactionID, "Specialized_Airport")
+  Power = Power + W_TAC_AIRBASE * CountType(FactionID, "Tactical_Airbase")
+  Power = Power + W_CARRIER     * CountType(FactionID, "Carrier")
+  Power = Power + W_SSBN        * CountType(FactionID, "SSBN")
+  Power = Power + W_SUB         * CountType(FactionID, "Submarine")
+  Power = Power + W_SUB         * CountType(FactionID, "SSGN")
+  Power = Power + W_CRUISER     * CountType(FactionID, "Cruiser")
+  Power = Power + W_DESTROYER   * CountType(FactionID, "Destroyer")
+  return Power
+END
+
+// Intel coverage of a rival in percent: how many of their ground units we
+// can see out of how many exist.  The total is the only omniscient number in
+// this script and it is used purely as a denominator - it never adds to the
+// rival's assessed strength.  No units at all = 100% (nothing to miss).
+BLOCK int CoveragePct(int FactionID)
+  // measured on divisions, not all ground units: bases and radars are
+  // trivially visible and would inflate coverage while the army itself is
+  // unseen (or still in reserve)
+  def set AllDivs
+  select units OWNER==FactionID AND PRINCIPAL_TYPE=="Army_Division" into AllDivs
+  def int Total = SIZE_OF(AllDivs)
+  if (Total<=0)
+    return 100
+  end
+  def set Seen
+  select units OWNER==FactionID AND PRINCIPAL_TYPE=="Army_Division" AND VISIBLE_FOR(SelfID) into Seen
+  return 100 * SIZE_OF(Seen) / Total
+END
+
+// Divisions a faction has inside a given set of region names
+BLOCK int DivisionsInRegions(int FactionID, ref set RegionNames)
+  if (SIZE_OF(RegionNames)<=0)
+    return 0
+  end
+  def set Found
+  if (INTEL_MODE==1 AND FactionID!=SelfID)
+    select units OWNER==FactionID AND PRINCIPAL_TYPE=="Army_Division" AND REGION in RegionNames AND VISIBLE_FOR(SelfID) into Found
+  else
+    select units OWNER==FactionID AND PRINCIPAL_TYPE=="Army_Division" AND REGION in RegionNames into Found
+  end
+  return SIZE_OF(Found)
+END
+
+// Rival aircraft we can see inside our own territory (spy planes, AWACS, ...)
+BLOCK int AircraftOverUs(int FactionID)
+  def set Found
+  select units OWNER==FactionID AND CLASS==Airborne AND TERRITORY==SelfID AND VISIBLE_FOR(SelfID) into Found
+  return SIZE_OF(Found)
+END
+
+// Regions owned by Owner that touch a region owned by Neighbour
+BLOCK ListBorderRegions(int Owner, int Neighbour, ref set Result)
+  ForEach string RegName in FACTION_REGIONS(Owner)
+    if (ADJACENT_REGIONS(RegName, {Neighbour}))
+      Result+=RegName
+    end
+  end
+END
+
+// Does the rival currently hold regions that originally belonged to us or to
+// one of our permanent allies?
+BLOCK int OccupiesOurSide(int FactionID, ref set MyAllies)
+  ForEach string RegName in FACTION_REGIONS(FactionID)
+    def int Orig = REGION_ORIGINAL_OWNER(RegName)
+    if (Orig!=FactionID)
+      if (Orig==SelfID OR (Orig in MyAllies))
+        return 1
+      end
+    end
+  end
+  return 0
+END
+
+// Is the rival at war with one of our permanent allies?
+BLOCK int AtWarWithOurAlly(ref set TheirEnemies, ref set MyAllies)
+  ForEach int A in MyAllies
+    if (A in TheirEnemies)
+      return 1
+    end
+  end
+  return 0
+END
+
+BLOCK int IndexOfRival(int FactionID)
+  def int i = 0
+  def int n = SIZE_OF(Rivals)
+  while (i<n)
+    if (GET_ELEMENT(Rivals, i)==FactionID)
+      return i
+    end
+    i++
+  end
+  return -1
+END
+
+BLOCK Leash(int FactionID)
+  if (not (FactionID in Leashed))
+    def string TargetName = FACTION_NAME(FactionID)
+    BlockAttack TargetName
+    BlockInvasion TargetName
+    Leashed+=FactionID
+  end
+END
+
+// The engine drops ALL of a faction's attack blocks when it goes to war (seen
+// in a save: BlockedAttackBitscale 1021 -> 0 after LimitedAttack on one
+// faction).  BlockAttack is idempotent, so just re-assert the leash on every
+// rival that has not been released.
+BLOCK ReassertLeash()
+  ForEach int R in Rivals
+    if (not (R in Released))
+      def string RName = FACTION_NAME(R)
+      BlockAttack RName
+      BlockInvasion RName
+    end
+  end
+END
+
+BLOCK Release(int FactionID, string Reason)
+  if (not (FactionID in Released))
+    def string TargetName = FACTION_NAME(FactionID)
+    Released+=FactionID
+    Leashed-=FactionID
+
+    // Probe results (2026-09-20, read from saves):
+    //   AllowAttack X    - does NOTHING in this build
+    //   LimitedAttack X  - clears X's block bit, declares war, limited escalation
+    //   AttackFaction X  - clears X's block bit, declares war, forces global attack
+    //   Declare War X    - declares war but X stays blocked
+    // So "releasing the leash" IS the declaration of war.
+    if (RELEASE_MODE==2)
+      AttackFaction TargetName
+    else
+      LimitedAttack TargetName
+    end
+    AllowInvasion TargetName
+    ReassertLeash()
+
+    if (DEBUG_MESSAGES>=1)
+      def string MyName = FACTION_NAME(SelfID)
+      Message MyName + " declares war on " + TargetName + ": " + Reason Position TopLeft
+    end
+  end
+END
+
+// Someone attacked our units.  Being attacked does NOT put us at war by
+// itself - the engine expects the victim's AI to declare war, and our leash
+// stops it from doing that.  So drop the leash on the attacker and let the
+// engine's own retaliation logic decide the response.  Called from hooks with
+// LITERAL faction names stamped by build.ps1 (a variable argument would be
+// re-evaluated when the event fires).
+BLOCK OnAttackedBy(string AttackerName)
+  def int A = FACTION_ID(AttackerName)
+  if (A!=SelfID AND not (A in Released))
+    Release(A, "attacked us")
+  end
+END
+
+// A war involving us has started (fired by the engine, e.g. because someone
+// attacked us).  Takes NO arguments on purpose: event handler arguments are
+// evaluated when the event fires, not when it is registered, so a loop
+// variable passed in would always hold its last value.  Instead we ask the
+// engine who we are hostile with right now and make sure none of them is
+// still leashed - the leash must never stop us from fighting back.
+BLOCK OnHostilities()
+  ForEach int T in Rivals
+    if (not (T in Released))
+      if (ENEMIES(SelfID, T))
+        Release(T, "at war")
+      end
+    end
+  end
+END
+
+
+// ------------------------------------------------------------ discovery --
+
+// Register every faction on the map (ALL_FACTIONS is stamped by build.ps1)
+// and leash any we have not seen before.  NOT unit-based: a faction whose
+// units are still in reserve (typically the human in the first minutes) has
+// no deployed ground units and would otherwise go unleashed - which is
+// exactly how NATO got to invade Alaska at minute 11.
+BLOCK DiscoverRivals()
+  def string MyName = FACTION_NAME(SelfID)
+  def int Added = 0
+
+  ForEach string OwnerName in ALL_FACTIONS
+    def int O = FACTION_ID(OwnerName)
+    if (O>=0 AND O!=SelfID AND not (OwnerName in IGNORED_FACTIONS))
+      if (not PERMANENT_ALLIES(O, SelfID))
+        if (not (O in Rivals))
+          Rivals+=O
+          RivalPower+=MilitaryPower(O)
+          RivalGrowthStreak+=0
+          RivalGrievance+=0
+          RivalCoverage+=0
+          RivalBorderDivs+=0
+          Added++
+
+          Leash(O)
+
+          // if a war with them starts (they attacked us), drop the leash
+          ON WAR_STARTED BETWEEN MyName AND OwnerName OnHostilities()
+        end
+      end
+    end
+  end
+
+  if (Initialised==0 AND SIZE_OF(Rivals)>0)
+    MyPrevPower = MilitaryPower(SelfID)
+    Initialised = 1
+
+    if (DEBUG_MESSAGES>=1)
+      def int NumRivals = SIZE_OF(Rivals)
+      Message MyName + " war-motives online, tracking " + NumRivals + " rivals, power " + MyPrevPower Position TopLeft
+    end
+  else
+    if (Added>0 AND DEBUG_MESSAGES>=1)
+      def int NumRivals = SIZE_OF(Rivals)
+      Message MyName + " now tracking " + NumRivals + " rivals" Position TopLeft
+    end
+  end
+END
+
+
+// ------------------------------------------------------------ evaluation --
+
+BLOCK EvaluateRivals()
+  EvalCount++
+
+  def int MyPower = MilitaryPower(SelfID)
+  def int MyGrowth = MyPower - MyPrevPower
+  if (MyGrowth<1)
+    MyGrowth = 1        // avoid divide-by-zero; treat no growth as tiny growth
+  end
+
+  def set MyAllies = GET_PERMANENT_ALLIES(SelfID)
+  def int Committed = SIZE_OF(Released)
+
+  def set NewPower
+  def set NewStreak
+  def set NewGrievance
+  def set NewCoverage
+  def set NewBorderDivs
+
+  // for the one-line debug summary
+  def int BestScore = -9999
+  def string BestName = ""
+  def string BestWhy = ""
+
+  def int idx = 0
+  def int n = SIZE_OF(Rivals)
+
+  while (idx<n)
+    def int T = GET_ELEMENT(Rivals, idx)
+    def int TPrevPower = GET_ELEMENT(RivalPower, idx)
+    def int TStreak = GET_ELEMENT(RivalGrowthStreak, idx)
+    def int TGrievance = GET_ELEMENT(RivalGrievance, idx)
+    def int TPrevCoverage = GET_ELEMENT(RivalCoverage, idx)
+    def int TPrevBorderDivs = GET_ELEMENT(RivalBorderDivs, idx)
+
+    def int TPower = MilitaryPower(T)
+    def int TGrowth = TPower - TPrevPower
+
+    def int Score = 0
+    def string Why = ""
+
+    // A permanent ally (alliances can form mid-game) is never scored or
+    // released; its bookkeeping still ticks along below.
+    def int IsAlly = 0
+    if (T in MyAllies)
+      IsAlly = 1
+      Why = " ally"
+    end
+
+    // carried into the bookkeeping below, so declared outside the block
+    def int Coverage = 100
+    def int MyBorderDivs = 0
+    def int TheirBorderDivs = 0
+
+    if (IsAlly==0)
+
+    // ---- safety net: if the engine says we are already at war with them,
+    //      the leash must be off (covers a missed WAR_STARTED event)
+    if (not (T in Released))
+      if (ENEMIES(SelfID, T))
+        Release(T, "at war")
+      end
+    end
+
+    // ---- intel coverage of them (drives land grab and the blind penalty)
+    if (INTEL_MODE==1)
+      Coverage = CoveragePct(T)
+    end
+
+    // A jump in coverage makes more of their units visible - that is us
+    // learning, not them growing.  Growth-type motives only count while
+    // coverage is steady.
+    def int CoverageDelta = Coverage - TPrevCoverage
+    if (CoverageDelta<0)
+      CoverageDelta = 0 - CoverageDelta
+    end
+    def int CoverageStable = 0
+    if (CoverageDelta<=STABLE_COVERAGE_DELTA)
+      CoverageStable = 1
+    end
+
+    // ---- shared border forces (used by land grab AND build-up grievance)
+    def set MyBorder
+    def set TheirBorder
+    ListBorderRegions(SelfID, T, MyBorder)
+    ListBorderRegions(T, SelfID, TheirBorder)
+
+    if (SIZE_OF(TheirBorder)>0)
+      MyBorderDivs = DivisionsInRegions(SelfID, MyBorder)
+      TheirBorderDivs = DivisionsInRegions(T, TheirBorder)
+
+      // land grab - per REGION, not aggregate: the weakest spot along the
+      // border, judged by their (visible) divisions in that region against
+      // ours in our regions adjacent to it.  An aggregate ratio lets a
+      // faction hide an empty Alaska behind a stacked lower-48 border.
+      // Only if we actually have eyes on them: with no intel the visible
+      // count is 0 and everyone looks like a pushover.
+      if (Coverage>=LANDGRAB_MIN_COVERAGE_PCT)
+        def int BestPct = 0
+        def string BestRegion = ""
+        ForEach string R in TheirBorder
+          def set ThisRegion = {R}
+          def int TheirHere = DivisionsInRegions(T, ThisRegion)
+          def set MyAdjacent
+          def set TheirAdjacent
+          ForEach string A in ADJACENT_REGIONS(R)
+            def int AOwner = REGION_OWNER(A)
+            if (AOwner==SelfID)
+              MyAdjacent+=A
+            end
+            if (AOwner==T)
+              TheirAdjacent+=A
+            end
+          end
+          def int MineAdjacent = DivisionsInRegions(SelfID, MyAdjacent)
+          def int TheirReinf = DivisionsInRegions(T, TheirAdjacent)
+          if (MineAdjacent>=LANDGRAB_MIN_OWN_DIVS)
+            // garrison + discounted reinforcements from their neighbouring provinces
+            def int TheirSafe = TheirHere + (TheirReinf * LANDGRAB_REINF_PCT / 100)
+            if (TheirSafe<1)
+              TheirSafe = 1
+            end
+            def int Pct = 100 * MineAdjacent / TheirSafe
+            if (Pct>BestPct)
+              BestPct = Pct
+              BestRegion = R
+            end
+          end
+        end
+        if (BestPct>=LANDGRAB_RATIO_PCT)
+          Score = Score + LANDGRAB_POINTS
+          Why = Why + " landgrab(" + BestRegion + " " + BestPct + "%)"
+          if (BestPct>=LANDGRAB_BONUS_PCT)
+            Score = Score + LANDGRAB_BONUS
+          end
+        end
+      end
+
+      // their build-up on our frontier -> grievance
+      def int MySafe = MyBorderDivs
+      if (MySafe<1)
+        MySafe = 1
+      end
+      def int TheirPct = 100 * TheirBorderDivs / MySafe
+      if (CoverageStable==1 AND TheirBorderDivs>TPrevBorderDivs AND TheirPct>=BUILDUP_RATIO_PCT)
+        TGrievance = TGrievance + BUILDUP_POINTS
+        Why = Why + " buildup(+" + (TheirBorderDivs - TPrevBorderDivs) + ")"
+      end
+    end
+
+    // ---- their aircraft over our territory -> grievance
+    def int Overflights = AircraftOverUs(T) * OVERFLIGHT_POINTS
+    if (Overflights>OVERFLIGHT_MAX)
+      Overflights = OVERFLIGHT_MAX
+    end
+    if (Overflights>0)
+      TGrievance = TGrievance + Overflights
+      Why = Why + " overflights"
+    end
+
+    // ---- outpaced: their military growth vs ours, must persist.  Only
+    //      assessed with decent, steady intel; otherwise the streak just holds.
+    def int GrowthPct = 100 * TGrowth / MyGrowth
+    if (CoverageStable==1 AND Coverage>=OUTPACED_MIN_COVERAGE_PCT)
+      if (TGrowth>=OUTPACED_MIN_GROWTH AND GrowthPct>=OUTPACED_PCT)
+        TStreak++
+      else
+        TStreak = 0
+      end
+    end
+    if (TStreak>=OUTPACED_MEMORY)
+      Score = Score + OUTPACED_POINTS
+      Why = Why + " outpaced(x" + TStreak + ")"
+    end
+
+    // ---- fear: their total (visible) power vs ours
+    def int MyPowerSafe = MyPower
+    if (MyPowerSafe<1)
+      MyPowerSafe = 1
+    end
+    def int PowerPct = 100 * TPower / MyPowerSafe
+    if (PowerPct>=STRONGER_PCT)
+      Score = Score - STRONGER_POINTS
+      Why = Why + " stronger(" + PowerPct + "%)"
+      if (PowerPct>=MUCH_STRONGER_PCT)
+        Score = Score - MUCH_STRONGER_POINTS
+      end
+    end
+
+    // ---- blind: poor intel coverage of them
+    if (INTEL_MODE==1)
+      if (Coverage<BLIND_COVERAGE_PCT)
+        Score = Score - BLIND_POINTS
+        Why = Why + " blind(" + Coverage + "%)"
+      end
+    end
+
+    // ---- their wars: distracted by a third party / fighting our ally
+    def set TheirEnemies = GET_ENEMIES(T)
+    TheirEnemies-=SelfID
+    if (SIZE_OF(TheirEnemies)>0)
+      Score = Score + DISTRACTED_POINTS
+      Why = Why + " distracted"
+      if (AtWarWithOurAlly(TheirEnemies, MyAllies)==1)
+        Score = Score + ALLY_AT_WAR_POINTS
+        Why = Why + " ally-at-war"
+      end
+    end
+
+    // ---- they sit on our land or an ally's
+    if (OccupiesOurSide(T, MyAllies)==1)
+      Score = Score + OCCUPIER_POINTS
+      Why = Why + " occupier"
+    end
+
+    // ---- old rivalry from the map
+    def string TNameForRivalry = FACTION_NAME(T)
+    if (TNameForRivalry in MAP_RIVALS)
+      Score = Score + RIVALRY_POINTS
+      Why = Why + " rivalry"
+    end
+
+    // ---- accumulated grievance (capped, decays)
+    if (TGrievance>GRIEVANCE_MAX)
+      TGrievance = GRIEVANCE_MAX
+    end
+    if (TGrievance>0)
+      Score = Score + TGrievance
+      Why = Why + " grievance(" + TGrievance + ")"
+      TGrievance = TGrievance - GRIEVANCE_DECAY
+      if (TGrievance<0)
+        TGrievance = 0
+      end
+    end
+
+    // ---- already committed elsewhere
+    if (Committed>0 AND not (T in Released))
+      Score = Score - COMMITTED_POINTS
+      Why = Why + " committed"
+    end
+
+    // ---- decision
+    def int Roll = RAND(RANDOM_FUDGE + 1)
+    def int Final = Score + Roll
+    def int WarmedUp = 0
+    if (CURRENT_TICK>=MINUTES(WARMUP_MIN))
+      WarmedUp = 1
+    end
+    if (Final>=WAR_THRESHOLD AND WarmedUp==0)
+      Why = Why + " (warm-up)"
+    end
+
+    if (not (T in Released))
+      def string TNameDbg = FACTION_NAME(T)
+      if (DEBUG_MESSAGES==2 OR (DEBUG_MESSAGES==1 AND TNameDbg==DEBUG_WATCH))
+        def string MyName = FACTION_NAME(SelfID)
+        Message MyName + " vs " + TNameDbg + " = " + Final + " [" + Why + " ]" Position TopLeft
+      end
+      if (Final>BestScore)
+        BestScore = Final
+        BestName = FACTION_NAME(T)
+        BestWhy = Why
+      end
+    end
+
+    if (Final>=WAR_THRESHOLD AND WarmedUp==1)
+      Release(T, Why)
+    end
+
+    end // IsAlly==0
+
+    NewPower+=TPower
+    NewStreak+=TStreak
+    NewGrievance+=TGrievance
+    NewCoverage+=Coverage
+    NewBorderDivs+=TheirBorderDivs
+
+    idx++
+  end
+
+  RivalPower = NewPower
+  RivalGrowthStreak = NewStreak
+  RivalGrievance = NewGrievance
+  RivalCoverage = NewCoverage
+  RivalBorderDivs = NewBorderDivs
+  MyPrevPower = MyPower
+
+  if (DEBUG_MESSAGES==1 AND BestScore>-9999)
+    def string MyName = FACTION_NAME(SelfID)
+    Message MyName + " (pwr " + MyPower + ") top: " + BestName + " " + BestScore + "/" + WAR_THRESHOLD + " [" + BestWhy + " ]" Position TopLeft
+  end
+END
+
+// Periodic entry point: first call discovers the rivals (units exist by then),
+// every later call scores them.
+BLOCK EvaluateWarMotives()
+  DiscoverRivals()
+  if (Initialised==1)
+    EvaluateRivals()
+    ReassertLeash()
+  end
+END
+
+
+// -------------------------------------------------------------- entry --
+
+BLOCK SetWarMotives()
+  // Leash the map-defined default enemies at tick 0 (no units needed for
+  // that), then pick up everyone else as soon as units are on the map.
+  ForEach int E in GET_ENEMIES(SelfID)
+    Leash(E)
+  end
+
+  ON TICK +SECONDS(15) DiscoverRivals()
+  ON TICK +MINUTES(1) DiscoverRivals()
+  ON EACH TICK +MINUTES(EVAL_PERIOD_MIN) EvaluateWarMotives()
+END

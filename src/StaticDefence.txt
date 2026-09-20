@@ -1,0 +1,75 @@
+// ===========================================================================
+//  Less Aggressive AI  -  mandatory home garrison
+//  SOURCE FILE - not loaded by the game.  Its DefenseGroups block is inlined
+//  into every strategy of AI/StrategyConquest.txt by build.ps1, because the
+//  vanilla strategies pull StaticDefence.txt in via USE, and USE'd files
+//  resolve to the base game rather than to mods.
+// ===========================================================================
+//
+//  Per the strategy docs (AI/StrategyConquest.txt):
+//    "Minimal - the static groups per faction. Before having the minimal
+//     defense set the invasion will not start."
+//    "by default complements make a part of the minimal set, i.e. no invasion
+//     before every complement is built."
+//
+//  So everything below that is NOT marked Optional is a hard gate on the AI
+//  starting a war.  Vanilla had no standing army divisions here at all - only
+//  bases.  This version:
+//    - adds standing garrison divisions (ArmyGroupDef) at home, per important
+//      region, and per border region that faces an enemy
+//    - lowers the GDP cut-off so more regions count as "important"
+//    - makes the SAM / coastal / checkpoint complements mandatory instead of
+//      Optional
+//
+//  Calibration (2026-09-20): a faction builds ~1 structure per 10 game-min,
+//  so the items required beyond a late-era starting roster should number
+//  ~12-18 to give the intended 2-3 game-hours from decision to invasion.
+//
+//  Vanilla for reference:
+//    Minimal: ArmyBaseDef x1, Carrier x1, Patrol x2, HiddenPatrol x1
+//    ComplementPer 15 RegionGDP Once: ArmyBaseDef x1, AirportTactical x1
+//    ComplementPer 2 EndangeredRegion: LWRadar x1
+//    ComplementPer 10 Regions: Airport x1
+//    ComplementPer 7 Regions: Satellite
+//    Optional ComplementPer 5 RegionGDP Max 2: SecurityCheckpoint x1
+//    Optional ComplementPer 10 RegionGDP Once: SAMSite x2
+//    Optional ComplementPer 1 WaterBorderRegion: BestCoastalDefence x1
+//    Coverage Dist 2000 By "Air_Transport": ArmyBaseDef x1
+// ===========================================================================
+
+  DefenseGroups
+    Minimal  // the baseline force required before ANY invasion is considered
+      "ArmyBaseDef" x 2
+      "ArmyGroupDef" x 2       // standing home-defence divisions (vanilla: none)
+      "Carrier" x 1
+      "Patrol" x 2
+      "HiddenPatrol" x 1
+
+    ComplementPer 10 RegionGDP Once // every region worth >=10% of GDP (vanilla: 15%)
+      "ArmyBaseDef" x 1
+      "AirportTactical" x 1
+      "ArmyGroupDef" x 1       // one garrison division per important region
+
+    ComplementPer 1 EndangeredRegion // one division per region bordering an enemy
+      "ArmyGroupDef" x 1
+
+    ComplementPer 2 EndangeredRegion
+      "LWRadar" x 1
+
+    ComplementPer 8 Regions  // vanilla: 10
+      "Airport" x 1
+
+    ComplementPer 7 Regions
+      "Satellite"
+
+    ComplementPer 5 RegionGDP Max 2 // vanilla: Optional
+      "SecurityCheckpoint" x 1
+
+    ComplementPer 10 RegionGDP Once // vanilla: Optional x2; x1 keeps the gate at ~2-3h
+      "SAMSite" x 1
+
+    ComplementPer 1 WaterBorderRegion Max 4 // vanilla: Optional, uncapped; capped so
+      "BestCoastalDefence" x 1                // long coastlines (NATO, China) don't add 8+ builds
+
+    Coverage Dist 2000 By "Air_Transport"
+      "ArmyBaseDef" x 1

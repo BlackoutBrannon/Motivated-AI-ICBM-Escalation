@@ -1,0 +1,7 @@
+ICBM MOD "Less Aggressive AI"
+
+Version "2.0.0"
+
+Description "AI factions need a reason to go to war. A scripted motive layer scores every rival separately - weak spots on the border it can actually see (intel matters: satellites, spy planes, radar), sustained faster arms build-up, provocations, a rival busy elsewhere, occupied land - and opens a limited war against that faction only when opportunity and a reason coincide. Any faction that is attacked hits back at once. Also: a mandatory home garrison before invading (2-3 game-hours of building), and higher war-readiness thresholds. Iron Curtain map."
+
+ChangeLog "2.0.0 - First fully verified end-to-end version: per-region land grab with reinforcement discount, intel-coverage gating, warm-up period, retaliation on attack, leash re-assertion, opportunity-alone-is-never-enough rule, debug lines for a watched faction. 1.x - initial script and garrison work."
