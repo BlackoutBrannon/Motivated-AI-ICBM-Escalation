@@ -92,7 +92,9 @@ def int LANDGRAB_MIN_COVERAGE_PCT = 50 // no land-grab assessment at all below t
 
 // land grab: our border divisions vs theirs, in percent
 def int LANDGRAB_RATIO_PCT  = 150    // our divisions adjacent to the weak spot >=150% of theirs in it
-def int LANDGRAB_MIN_OWN_DIVS = 2    // ...and at least this many of ours adjacent (no grab with nothing)
+def int LANDGRAB_MIN_OWN_DIVS = 2    // ...and at least this many of ours available (no grab with nothing)
+def int LANDGRAB_MOBILE_PCT = 30     // share of our WHOLE army counted as deployable to any spot by air/sea,
+                                     // on top of the divisions already adjacent (the engine airlifts and ships)
 def int LANDGRAB_REINF_PCT  = 50     // their divisions in THEIR regions adjacent to the spot count this much
                                      // (reinforcements one province away are half a garrison)
 // Design rule: opportunity alone is never a casus belli.  landgrab + rivalry
@@ -539,6 +541,11 @@ BLOCK EvaluateRivals()
       CoverageStable = 1
     end
 
+    // our whole army, for the mobile share used in the land-grab check
+    def set MyAllDivs
+    select units OWNER==SelfID AND PRINCIPAL_TYPE=="Army_Division" into MyAllDivs
+    def int MyMobile = SIZE_OF(MyAllDivs) * LANDGRAB_MOBILE_PCT / 100
+
     // ---- shared border forces (used by land grab AND build-up grievance)
     def set MyBorder
     def set TheirBorder
@@ -574,7 +581,7 @@ BLOCK EvaluateRivals()
               TheirAdjacent+=A
             end
           end
-          def int MineAdjacent = DivisionsInRegions(SelfID, MyAdjacent)
+          def int MineAdjacent = DivisionsInRegions(SelfID, MyAdjacent) + MyMobile
           def int TheirReinf = DivisionsInRegions(T, TheirAdjacent)
           if (MineAdjacent>=LANDGRAB_MIN_OWN_DIVS)
             // garrison + discounted reinforcements from their neighbouring provinces
@@ -586,7 +593,7 @@ BLOCK EvaluateRivals()
             if (Pct>BestPct)
               BestPct = Pct
               BestRegion = R
-              BestDetail = MineAdjacent + "v" + TheirHere + "+" + TheirReinf + "/2"
+              BestDetail = (MineAdjacent - MyMobile) + "+" + MyMobile + "v" + TheirHere + "+" + TheirReinf + "/2"
             end
           end
           if (MineAdjacent>BestMine)
@@ -601,7 +608,7 @@ BLOCK EvaluateRivals()
             Score = Score + LANDGRAB_BONUS
           end
         else
-          // diagnostics: why not?  (mine-adjacent v their-garrison + reinforcements/2)
+          // diagnostics: why not?  (mine-adjacent+mobile v their-garrison + reinforcements/2)
           if (BestPct>0)
             Why = Why + " spot(" + BestRegion + " " + BestPct + "% " + BestDetail + ")"
           else
