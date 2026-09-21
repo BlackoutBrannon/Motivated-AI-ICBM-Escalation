@@ -41,6 +41,17 @@ are real defensive measures.
 hits back at once with a rolling series of limited operations — proportionate,
 and never an invasion by itself.
 
+**Nuclear weapons are a last resort.** Every AI starts with all nuclear
+categories withheld and releases them tier by tier, never taking them back:
+
+| Tier | Released | When |
+|---|---|---|
+| Tactical | tactical nukes, nuclear artillery | at war and being invaded in a region it may not hold (invaders ≥ defenders there) — or hit by tactical nukes first |
+| Strategic | fission, MIRV, strategic, SLBM | at war and the threat is existential: divisions ≤ 30%, regions ≤ 60% or power ≤ 50% of what it started with — or hit by strategic weapons first |
+| Salted | salted weapons | only in kind |
+
+`NUCLEAR_DOCTRINE 0` restores vanilla behaviour.
+
 Also included:
 
 - higher war-readiness thresholds on every difficulty
