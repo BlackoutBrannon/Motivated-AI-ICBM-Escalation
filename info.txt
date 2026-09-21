@@ -1,7 +1,7 @@
 ICBM MOD "Less Aggressive AI"
 
-Version "2.1.0"
+Version "2.2.0"
 
 Description "AI factions need a reason to go to war. A scripted motive layer scores every rival separately - weak spots on the border it can actually see (intel matters: satellites, spy planes, radar), sustained faster arms build-up, provocations, a rival busy elsewhere, occupied land - and opens a limited war against that faction only when opportunity and a reason coincide. Any faction that is attacked hits back at once. Decided wars are fought in full; retaliation stays limited. Vanilla garrison and build logic; higher war-readiness thresholds. Iron Curtain map."
 
-ChangeLog "2.1.0 - Decided wars open with AttackFaction (invasions happen), retaliation is rolling LimitedAttack, garrison back to vanilla (stricter one is an opt-in build switch). 2.0.0 - First fully verified end-to-end version: per-region land grab with reinforcement discount, intel-coverage gating, warm-up period, retaliation on attack, leash re-assertion, opportunity-alone-is-never-enough rule, debug lines for a watched faction. 1.x - initial script and garrison work."
+ChangeLog "2.2.0 - Verified end to end in play: motive -> declaration -> engine invasion (Hamburg captured 3.5 min after the Pact declared on a distracted NATO). Fixed the same-tick re-block freeze, delayed leash restore, motive-driven war kind, grievance accumulation, cascade damping. 2.1.0 - Decided wars open with AttackFaction (invasions happen), retaliation is rolling LimitedAttack, garrison back to vanilla (stricter one is an opt-in build switch). 2.0.0 - First fully verified end-to-end version: per-region land grab with reinforcement discount, intel-coverage gating, warm-up period, retaliation on attack, leash re-assertion, opportunity-alone-is-never-enough rule, debug lines for a watched faction. 1.x - initial script and garrison work."
