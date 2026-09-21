@@ -14,7 +14,7 @@ faction* when an opportunity and a reason coincide.
 |---|---|---|
 | Land grab | +40 (+20 at ≥300%) | A specific border region of theirs is thinly held compared with what we can bring: our divisions next to it plus 30% of our whole army by air and sea (their reinforcements one region away count at half) |
 | Outpaced | +45 | Their military has out-grown ours for three evaluations running |
-| Distracted | +30 | They are already at war with someone else |
+| Distracted | +25 | They have been at war with someone else for at least two evaluations |
 | Ally at war | +45 | They are fighting one of our permanent allies |
 | Occupier | +50 | They hold regions that were ours or an ally's |
 | Old rivalry | +15 | The map lists them as a default enemy |
@@ -88,8 +88,13 @@ the shared source into each of them.
   and a `BlockAttack` leash stops it from doing so.
 - Script `AllowAttack` is a no-op. `LimitedAttack X` and `AttackFaction X`
   clear the block and declare war; `Declare War X` only sets relations.
-- The engine wipes a faction's attack blocks when it goes to war; the mod
-  re-asserts them every evaluation.
+- Going to war wipes all of a faction's attack blocks. Re-blocking others
+  **in the same tick after** a war order freezes the faction outright (no
+  orders, war dropped); re-blocking two minutes later holds and the war goes
+  on. The mod restores the leash on a delay and always issues blocks before
+  war orders within an evaluation.
+- `LimitedAttack` / `AttackFaction` are one-shot operations; the mod re-issues
+  the faction's war mode every evaluation for each current enemy.
 - Event-handler arguments are evaluated when the event fires, not when it is
   registered — never pass a loop variable.
 - Factions build one item at a time, ~0.4 cost-units per 10 game-minutes;

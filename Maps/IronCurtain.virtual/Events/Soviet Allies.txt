@@ -352,7 +352,12 @@ BLOCK ReleaseWith(int FactionID, string Reason, int Mode)
     if (Mode==2)
       AllowInvasion TargetName
     end
-    ReassertLeash()
+    // ENGINE (probe 3): going to war wipes ALL of this faction's attack
+    // blocks, and a BlockAttack issued in the SAME tick after the war order
+    // freezes the faction (no orders, war dropped).  A re-block two minutes
+    // later holds and keeps the war going.  So the leash on everyone else
+    // is restored on a delay, never here.
+    ON TICK +MINUTES(2) ReassertLeash()
 
     if (DEBUG_MESSAGES>=1)
       def string MyName = FACTION_NAME(SelfID)
@@ -827,12 +832,14 @@ BLOCK ReissueWars()
   end
 END
 
+// Order matters (probe 3): blocks BEFORE war orders in a tick are fine,
+// blocks AFTER a war order in the same tick freeze the faction.
 BLOCK EvaluateWarMotives()
   DiscoverRivals()
   if (Initialised==1)
+    ReassertLeash()
     EvaluateRivals()
     ReissueWars()
-    ReassertLeash()
   end
 END
 
