@@ -816,6 +816,7 @@ END
 // in ONE pass after scoring, so nothing clobbers it mid-evaluation.  One mode
 // per faction: full if any war was opened for territorial reasons.
 BLOCK ReissueWars()
+  def int Reissued = 0
   ForEach int T in Released
     if (ENEMIES(SelfID, T))
       def string TNameWar = FACTION_NAME(T)
@@ -824,7 +825,14 @@ BLOCK ReissueWars()
       else
         LimitedAttack TNameWar
       end
+      Reissued = 1
     end
+  end
+  // A re-issued LimitedAttack wipes the faction's blocks again (seen in a
+  // save: every limited-war faction at 0, every full-war faction intact).
+  // Restore the leash on the proven two-minute delay - never in this tick.
+  if (Reissued==1)
+    ON TICK +MINUTES(2) ReassertLeash()
   end
 END
 
