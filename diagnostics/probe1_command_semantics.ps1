@@ -13,7 +13,7 @@
 # Restore the real mod afterwards with:  powershell -File build.ps1
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $dir  = Join-Path $root 'Maps\IronCurtain.virtual\Events'
 New-Item -ItemType Directory -Force $dir | Out-Null
 

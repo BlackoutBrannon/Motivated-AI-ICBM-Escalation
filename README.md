@@ -39,7 +39,8 @@ are real defensive measures.
 
 **Being attacked is answered immediately.** Any faction that is attacked
 hits back at once with a rolling series of limited operations — proportionate,
-and never an invasion by itself.
+and never an invasion by itself. A war the engine brings a faction into on
+behalf of a permanent ally is fought in full.
 
 **Nuclear weapons are a last resort.** Every AI starts with all nuclear
 categories withheld and releases them tier by tier, never taking them back:
@@ -71,7 +72,7 @@ Currently supports the **Iron Curtain** map.
 src/WarMotives.txt      the motive script (edit this)
 src/StaticDefence.txt   optional stricter garrison rules (off by default)
 build.ps1               stamps both into the files the game actually loads
-build_probe.ps1         diagnostic build used to reverse-engineer script commands
+diagnostics/            throwaway probe builds used to reverse-engineer the engine (not for play)
 AI/                     limits.txt (readiness thresholds); StrategyConquest.txt only with the garrison switch on
 Maps/IronCurtain.virtual/Events/   generated: one script copy per faction
 ```

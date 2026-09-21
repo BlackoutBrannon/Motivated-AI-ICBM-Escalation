@@ -406,11 +406,24 @@ END
 // variable passed in would always hold its last value.  Instead we ask the
 // engine who we are hostile with right now and make sure none of them is
 // still leashed - the leash must never stop us from fighting back.
+// Mutual defence: if the engine put us at war with someone who is also
+// fighting one of our permanent allies, that is an alliance war and we
+// commit fully; anything else is answered with limited operations.
+BLOCK RespondToWar(int T)
+  def set MyAllies = GET_PERMANENT_ALLIES(SelfID)
+  def set TheirEnemies = GET_ENEMIES(T)
+  if (AtWarWithOurAlly(TheirEnemies, MyAllies)==1)
+    ReleaseWith(T, "defending ally", 2)
+  else
+    Retaliate(T, "at war")
+  end
+END
+
 BLOCK OnHostilities()
   ForEach int T in Rivals
     if (not (T in Released))
       if (ENEMIES(SelfID, T))
-        Retaliate(T, "at war")
+        RespondToWar(T)
       end
     end
   end
@@ -533,7 +546,7 @@ BLOCK EvaluateRivals()
     //      the leash must be off (covers a missed WAR_STARTED event)
     if (not (T in Released))
       if (ENEMIES(SelfID, T))
-        Retaliate(T, "at war")
+        RespondToWar(T)
       end
     end
 
