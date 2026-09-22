@@ -1290,18 +1290,30 @@ BLOCK SetWarMotives()
     DISABLE Missiles ai_category "Strategic Nuclear" FOR ME
     DISABLE Missiles ai_category "SLBM" FOR ME
     DISABLE Missiles ai_category "Salted Weapons" FOR ME
+    // In-kind tiers are chosen by what the weapon IS, not by its yield
+    // label: 100kt/250kt ALBMs are AI-category Tactical Nuclear but carry
+    // the "High-Yield Nukes" geneva tag, and using that tag for the
+    // strategic trigger promoted whole factions for being shelled.
+    // Strategic promotes only on categories that appear on no tactical
+    // weapon; everything else is answered in tactical kind.
+    on attacked anything by ai_category "Tactical Nuclear" AuthoriseTactical("in kind")
     on attacked anything by geneva "Offensive Tactical Nukes" AuthoriseTactical("in kind")
     on attacked anything by geneva "Defencive Tactical Nukes" AuthoriseTactical("in kind")
     on attacked anything by geneva "Light Gravity Bombs" AuthoriseTactical("in kind")
-    on attacked anything by geneva "High-Yield Nukes" AuthoriseStrategic("in kind")
-    on attacked anything by geneva "Basic Fission Weapons" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "High-Yield Nukes" AuthoriseTactical("in kind")
+    on attacked anything by geneva "Basic Fission Weapons" AuthoriseTactical("in kind")
+    on attacked anything by geneva "Heavy Gravity Bombs" AuthoriseStrategic("in kind")
     on attacked anything by geneva "Nuclear MIRV" AuthoriseStrategic("in kind")
-    on attacked anything by geneva "Salted Weapons" AuthoriseSalted("in kind")
-    on attacked anything by ai_category "Tactical Nuclear" AuthoriseTactical("in kind")
-    on attacked anything by ai_category "Basic Nuclear" AuthoriseStrategic("in kind")
-    on attacked anything by ai_category "Small MIRV" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "Heavy ICBM MIRV" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "Light ICBM MIRV" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "MRBM MIRV" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "SLBM MIRV" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "Unitary Heavy Nuclear ICBM" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "Unitary Light Nuclear ICBM" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "Unitary Nuclear MRBM" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "Unitary Nuclear SLBM" AuthoriseStrategic("in kind")
     on attacked anything by ai_category "Strategic Nuclear" AuthoriseStrategic("in kind")
-    on attacked anything by ai_category "SLBM" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "Salted Weapons" AuthoriseSalted("in kind")
     on attacked anything by ai_category "Salted Weapons" AuthoriseSalted("in kind")
   end
 
