@@ -160,14 +160,18 @@ def int STRONGER_POINTS     = 70     // subtracted
 def int MUCH_STRONGER_PCT   = 200
 def int MUCH_STRONGER_POINTS = 60    // subtracted on top
 
-def int DISTRACTED_POINTS   = 25     // rival is at war with a third party...
+def int DISTRACTED_POINTS   = 25     // rival is at war with a third party we are NOT fighting...
 def int DISTRACTED_MIN_EVALS = 2     // ...and has been for at least this many evaluations.  A war that
                                      // started this tick is not yet a distraction; this stops one incident
                                      // cascading into three declarations in the same evaluation.
 def int ALLY_AT_WAR_POINTS  = 45     // rival is at war with one of our permanent allies
 def int OCCUPIER_POINTS     = 50     // rival holds regions originally ours or an ally's
 def int RIVALRY_POINTS      = 15     // rival is on the map's DefaultEnemy list (MAP_RIVALS, stamped by build.ps1)
-def int COMMITTED_POINTS    = 40     // subtracted from everyone else once we release one leash
+// Fighting on more than one front is a tall order: the penalty for opening
+// ANOTHER war grows with the number we already have.  1 war = -40 for the
+// next, 2 wars = -120, 3 = -240 ... so a third front needs an overwhelming
+// reason and a fourth is effectively out of reach.
+def int COMMITTED_POINTS    = 40     // x wars x (wars+1) / 2, subtracted from every other rival
 
 // grievance accumulators (per evaluation, decaying)
 def int BUILDUP_RATIO_PCT   = 150    // their border divisions >=150% of ours...
@@ -870,10 +874,19 @@ BLOCK EvaluateRivals()
       end
     end
 
-    // ---- their wars: distracted by a third party / fighting our ally
+    // ---- their wars: distracted by a third party / fighting our ally.
+    //      "Distracted" means their forces are tied up somewhere WE are not:
+    //      a shared enemy is not a distraction, it is a common front.
     def set TheirEnemies = GET_ENEMIES(T)
     TheirEnemies-=SelfID
-    if (SIZE_OF(TheirEnemies)>0)
+    def set MyEnemies = GET_ENEMIES(SelfID)
+    def set TheirOtherWars
+    ForEach int E in TheirEnemies
+      if (not (E in MyEnemies))
+        TheirOtherWars+=E
+      end
+    end
+    if (SIZE_OF(TheirOtherWars)>0)
       TWarStreak++
       if (TWarStreak>=DISTRACTED_MIN_EVALS)
         Score = Score + DISTRACTED_POINTS
@@ -881,7 +894,7 @@ BLOCK EvaluateRivals()
       else
         Why = Why + " (at-war " + TWarStreak + "/" + DISTRACTED_MIN_EVALS + ")"
       end
-      if (AtWarWithOurAlly(TheirEnemies, MyAllies)==1)
+      if (AtWarWithOurAlly(TheirOtherWars, MyAllies)==1)
         Score = Score + ALLY_AT_WAR_POINTS
         Why = Why + " ally-at-war"
         AllyWar = 1
@@ -921,10 +934,16 @@ BLOCK EvaluateRivals()
 
     // ---- already committed elsewhere (read live: a release earlier in this
     //      same pass must count against every rival evaluated after it)
-    def int Committed = SIZE_OF(Released)
+    def int Committed = 0
+    ForEach int R in Released
+      if (ENEMIES(SelfID, R))
+        Committed++
+      end
+    end
     if (Committed>0 AND not (T in Released))
-      Score = Score - COMMITTED_POINTS
-      Why = Why + " committed"
+      def int Penalty = COMMITTED_POINTS * Committed * (Committed + 1) / 2
+      Score = Score - Penalty
+      Why = Why + " committed(" + Committed + " wars, -" + Penalty + ")"
     end
 
     // ---- standoff pressure

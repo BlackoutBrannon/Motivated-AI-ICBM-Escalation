@@ -14,14 +14,14 @@ faction* when an opportunity and a reason coincide.
 |---|---|---|
 | Land grab | +40 (+20 at ≥300%) | A specific border region of theirs is thinly held compared with what we can bring: our divisions next to it plus 30% of our whole army by air and sea (their reinforcements one region away count at half) |
 | Outpaced | +45 | Their military has out-grown ours for three evaluations running |
-| Distracted | +25 | They have been at war with someone else for at least two evaluations |
+| Distracted | +25 | They have been tied up for at least two evaluations in a war against somebody **we are not also fighting** (a shared enemy is a common front, not a distraction) |
 | Ally at war | +45 | They are fighting one of our permanent allies |
 | Occupier | +50 | They hold regions that were ours or an ally's |
 | Old rivalry | +15 | The map lists them as a default enemy |
 | Grievance | up to +120, decays | Frontier reinforcements against us, their aircraft over our territory |
 | Stronger | −70 / −130 | Their visible power clearly outweighs ours |
 | Blind | −40 | We can see fewer than half their divisions |
-| Committed | −40 | We already chose a war elsewhere |
+| Committed | −40 × n(n+1)/2 | We already have n wars of our own: −40 for a second front, −120 for a third, −240 for a fourth |
 
 A rival that has sat within reach of the threshold for a long time wears
 down restraint: after 90 game-minutes of such a standoff there is a small
