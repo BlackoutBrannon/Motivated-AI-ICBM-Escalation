@@ -8,6 +8,7 @@ event files with a tiny experiment per faction.
 |---|---|
 | `probe1_command_semantics.ps1` | What `BlockAttack` / `AllowAttack` / `LimitedAttack` / `AttackFaction` / `Declare War` actually do to the bitscales and relations. (`AllowAttack` is a no-op.) |
 | `probe2_war_openers.ps1` | Which way of opening a war makes the AI fight, and whether re-issuing orders freezes it. (All work; `GlobalAttack` forces war on everyone.) |
+| `probe4_peace_syntax.ps1` | How a script asks for peace: nine candidate forms of `Peace` / `CREATE_OFFER` / `CeaseFire`, one per faction. (Not yet run.) |
 | `probe3_reblock_timing.ps1` | How to restore the leash on other factions after going to war without freezing. (Never block in the same tick after a war order; two minutes later is fine.) |
 
 To run one: `powershell -ExecutionPolicy Bypass -File diagnostics\<probe>.ps1`,

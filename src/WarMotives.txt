@@ -90,6 +90,13 @@ def int RETALIATION_MODE    = 1      // hitting back at someone who attacked us
 // attack is never blocked.  Also covers a declaration the engine refused
 // (e.g. under a treaty we cannot see): if we are not at war two evaluations
 // after ordering one, the order is withdrawn and the same protection applies.
+// ---- stalemate: a war that has gone nowhere for a long time is wound down.
+//      Neither side has taken ground and we are not making progress, so the
+//      faction stops prosecuting it and stands down (and, once the syntax is
+//      verified, will offer a ceasefire).
+def int STALEMATE_EVALS     = 20     // 20 x 6 min = two game-hours of war...
+def int STALEMATE_GAIN_PCT  = 0      // ...with no net region change either way
+
 def int PEACE_COOLDOWN_EVALS = 10    // 10 x 6 min = one game-hour
 def int PARTNERS_EXEMPT     = 1      // a partnership (relation 2) is never scored or declared on, like an
                                      // alliance (3).  Relation codes seen in saves: 0 war, 1 neutral, 2 partner, 3 ally.
@@ -202,6 +209,9 @@ def set RivalCoverage     // parallel: our intel coverage of them at last eval (
 def set RivalBorderDivs   // parallel: their visible divisions on our border at last eval
 def set RivalWarStreak    // parallel: consecutive evals they have been at war with a third party
 def set RivalStandoff     // parallel: consecutive evals their score sat within reach
+def set RivalWarSince     // parallel: EvalCount when our war with them began (-1 = not at war)
+def set RivalWarMyRegions // parallel: our region count when that war began
+def set RivalWarTheirRegions // parallel: their region count when that war began
 def set Released          // ids we have taken off the leash
 def set TotalWar          // subset of Released opened with AttackFaction
 def set Protected         // ids under peace cooldown (parallel to ProtectedUntil)
@@ -401,6 +411,15 @@ BLOCK Protect(int FactionID, string Reason)
   end
 END
 
+// Wind a war down from our side: stop prosecuting it, re-leash, and put the
+// faction under the peace cooldown so nothing re-declares immediately.  The
+// engine's relation stays hostile until a ceasefire is agreed - offering one
+// from a script needs the PEACE statement, whose syntax is not yet verified
+// (see diagnostics/probe4_peace_syntax.ps1).
+BLOCK StandDownFrom(int FactionID, string Reason)
+  Protect(FactionID, Reason)
+END
+
 BLOCK ReleaseWith(int FactionID, string Reason, int Mode)
   if (IsProtected(FactionID)==1)
     // under a peace cooldown: scored declarations are refused.  Retaliate()
@@ -543,6 +562,9 @@ BLOCK DiscoverRivals()
           RivalBorderDivs+=0
           RivalWarStreak+=0
           RivalStandoff+=0
+          RivalWarSince+=(0 - 1)
+          RivalWarMyRegions+=0
+          RivalWarTheirRegions+=0
           Added++
 
           Leash(O)
@@ -591,6 +613,9 @@ BLOCK EvaluateRivals()
   def set NewBorderDivs
   def set NewWarStreak
   def set NewStandoff
+  def set NewWarSince
+  def set NewWarMyRegions
+  def set NewWarTheirRegions
 
   // for the one-line debug summary
   def int BestScore = -9999
@@ -609,6 +634,9 @@ BLOCK EvaluateRivals()
     def int TPrevBorderDivs = GET_ELEMENT(RivalBorderDivs, idx)
     def int TWarStreak = GET_ELEMENT(RivalWarStreak, idx)
     def int TStandoff = GET_ELEMENT(RivalStandoff, idx)
+    def int TWarSince = GET_ELEMENT(RivalWarSince, idx)
+    def int TWarMyRegions = GET_ELEMENT(RivalWarMyRegions, idx)
+    def int TWarTheirRegions = GET_ELEMENT(RivalWarTheirRegions, idx)
 
     def int TPower = MilitaryPower(T)
     def int TGrowth = TPower - TPrevPower
@@ -655,6 +683,32 @@ BLOCK EvaluateRivals()
       if (ENEMIES(SelfID, T))
         RespondToWar(T)
       end
+    end
+
+    // ---- stalemate: has this war gone anywhere?
+    def int AtWarNow = 0
+    if (ENEMIES(SelfID, T))
+      AtWarNow = 1
+    end
+    def int MyRegionsNow = SIZE_OF(FACTION_REGIONS(SelfID))
+    def int TheirRegionsNow = SIZE_OF(FACTION_REGIONS(T))
+    if (AtWarNow==1)
+      if (TWarSince<0)
+        TWarSince = EvalCount
+        TWarMyRegions = MyRegionsNow
+        TWarTheirRegions = TheirRegionsNow
+      end
+      if (EvalCount-TWarSince>=STALEMATE_EVALS)
+        def int MyGain = MyRegionsNow - TWarMyRegions
+        def int TheirGain = TheirRegionsNow - TWarTheirRegions
+        if (MyGain<=STALEMATE_GAIN_PCT AND TheirGain<=STALEMATE_GAIN_PCT)
+          def int Duration = EvalCount - TWarSince
+          StandDownFrom(T, "stalemate: " + Duration + " evaluations, no ground taken")
+          TWarSince = 0 - 1
+        end
+      end
+    else
+      TWarSince = 0 - 1
     end
 
     // ---- intel coverage of them (drives land grab and the blind penalty)
@@ -940,6 +994,9 @@ BLOCK EvaluateRivals()
     NewBorderDivs+=TheirBorderDivs
     NewWarStreak+=TWarStreak
     NewStandoff+=TStandoff
+    NewWarSince+=TWarSince
+    NewWarMyRegions+=TWarMyRegions
+    NewWarTheirRegions+=TWarTheirRegions
 
     idx++
   end
@@ -951,6 +1008,9 @@ BLOCK EvaluateRivals()
   RivalBorderDivs = NewBorderDivs
   RivalWarStreak = NewWarStreak
   RivalStandoff = NewStandoff
+  RivalWarSince = NewWarSince
+  RivalWarMyRegions = NewWarMyRegions
+  RivalWarTheirRegions = NewWarTheirRegions
   MyPrevPower = MyPower
 
   if (DEBUG_MESSAGES==1 AND BestScore>-9999)
