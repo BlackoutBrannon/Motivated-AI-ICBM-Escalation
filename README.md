@@ -59,6 +59,13 @@ categories withheld and releases them tier by tier, never taking them back:
 
 `NUCLEAR_DOCTRINE 0` restores vanilla behaviour.
 
+**Colourblind palette (optional).** `$ColorblindPalette` in `build.ps1`
+replaces the ten faction colours with a set built for a weak red cone:
+factions are separated by lightness and the blue–yellow axis, there are no
+purples, and reds are kept light so they cannot collapse into the browns.
+Your side is bright (sky blue, white, mint); the Eastern bloc is dark (brown,
+maroon, orange-red).
+
 Also included:
 
 - higher war-readiness thresholds on every difficulty

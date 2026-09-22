@@ -65,6 +65,31 @@ if ($StricterGarrison) {
   Write-Host "AI\StrategyConquest.txt not generated (vanilla garrison)."
 }
 
+# --- optional colourblind-friendly faction palette (OFF by default) -------
+# Overrides the Color of each Player in the map file (opened directly by the
+# engine).  Built for a weak red cone (protan): factions are separated by
+# LIGHTNESS and the blue-yellow axis, no purples, reds kept light.
+$ColorblindPalette = $true
+$palette = @{
+  'United States'='00A0FF'; 'Soviet Union'='FF6040'; 'NATO'='FFFFFF'; 'Warsaw Pact'='3A1E00'
+  'American Allies'='00E0A0'; 'Soviet Allies'='8B0000'; 'China'='FFE000'; 'India'='FFB000'
+  'Pakistan'='3C5A14'; 'Neutral'='909090'
+}
+foreach ($map in $maps.Keys) {
+  $mapFile = ($map -replace '\.virtual$', '.txt')
+  $out = Join-Path $root "Maps\$mapFile"
+  if ($ColorblindPalette) {
+    $txt = Get-Content (Join-Path $gameRoot "Maps\$mapFile") -Raw
+    foreach ($f in $palette.Keys) {
+      $txt = $txt -replace ('(?m)^(\s*Player "' + [regex]::Escape($f) + '" Color ")[0-9A-Fa-f]+(")'), ('${1}' + $palette[$f] + '${2}')
+    }
+    [IO.File]::WriteAllText($out, $txt, (New-Object Text.UTF8Encoding($false)))
+    Write-Host "Generated Maps\$mapFile with the colourblind palette."
+  } else {
+    Remove-Item $out -ErrorAction SilentlyContinue
+  }
+}
+
 $count = 0
 foreach ($map in $maps.Keys) {
   # the map's DefaultEnemy pairs -> per-faction MAP_RIVALS set (the "old
