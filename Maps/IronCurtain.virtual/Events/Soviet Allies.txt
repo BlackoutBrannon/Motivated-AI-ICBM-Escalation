@@ -980,10 +980,6 @@ BLOCK EvaluateNuclearDoctrine()
   end
 END
 
-BLOCK StartEvaluations()
-  ON EACH TICK +MINUTES(EVAL_PERIOD_MIN) EvaluateWarMotives()
-END
-
 BLOCK EvaluateWarMotives()
   DiscoverRivals()
   if (Initialised==1)
@@ -997,6 +993,15 @@ BLOCK EvaluateWarMotives()
     ReissueWars()
     EvaluateNuclearDoctrine()
   end
+END
+
+
+// Registered from a tick handler so each faction starts its evaluation
+// cycle at its own offset.  Must be defined AFTER EvaluateWarMotives: an
+// event registration names its handler, and the parser only knows blocks
+// defined above it.
+BLOCK StartEvaluations()
+  ON EACH TICK +MINUTES(EVAL_PERIOD_MIN) EvaluateWarMotives()
 END
 
 
