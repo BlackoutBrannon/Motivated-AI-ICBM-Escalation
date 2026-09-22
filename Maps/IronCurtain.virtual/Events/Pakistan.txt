@@ -104,7 +104,10 @@ def int PARTNERS_EXEMPT     = 1      // a partnership (relation 2) is never scor
 //      we are actually being invaded in.  Tier 2 (strategic) when the threat
 //      is existential.  Either tier also in kind, the moment we are hit by it.
 def int NUCLEAR_DOCTRINE    = 1      // 0 = vanilla (AI free to use whatever it has)
-def int TACTICAL_HOLD_RATIO_PCT = 100 // invaders in one of our regions >= this % of our divisions there
+def int TACTICAL_HOLD_RATIO_PCT = 100 // invaders in one of our regions >= this % of our divisions there...
+def int TACTICAL_REGION_PCT = 5      // ...AND that region is worth >= this % of our starting production
+                                     //    (a border backwater does not go nuclear)
+def int TACTICAL_REGIONS_LOST = 2    // OR we have already lost this many starting regions outright
 // Existential = TERRITORY, not units (divisions are cheap to replace, land
 // is not).  Strategic weapons when, while at war, we have lost either this
 // many of our starting regions, or any single region that was this large a
@@ -1090,27 +1093,45 @@ BLOCK EvaluateNuclearDoctrine()
   if (NUCLEAR_DOCTRINE==1)
     NuclearBaseline()
     if (AtWarWithAnyone()==1)
-      // ---- tier 1: a region of ours is being invaded and we may not hold it
+      // ---- tier 1: a region of ours WORTH DEFENDING is being invaded and we
+      //      may not hold it - or we have already lost regions outright
+      if (NukeTier<1)
+        def int LostNow = 0
+        ForEach string R in InitialRegionSet
+          if (REGION_OWNER(R)!=SelfID)
+            LostNow++
+          end
+        end
+        if (LostNow>=TACTICAL_REGIONS_LOST)
+          AuthoriseTactical(LostNow + " regions already lost")
+        end
+      end
       if (NukeTier<1)
         def set Invaders
         select units ENEMY(SelfID) AND CLASS==Ground AND TERRITORY==SelfID into Invaders
         if (SIZE_OF(Invaders)>0)
-          // which of our regions are they in, and can we hold each one?
           ForEach string R in FACTION_REGIONS(SelfID)
             def set Inv
             select units ENEMY(SelfID) AND CLASS==Ground AND REGION==R into Inv
             def int NumInv = SIZE_OF(Inv)
             if (NumInv>0)
-              def set One = {R}
-              def int Defenders = DivisionsInRegions(SelfID, One)
-              def int DefSafe = Defenders
-              if (DefSafe<1)
-                DefSafe = 1
+              def int RProd = STAT("REGION_INITIAL_PRODUCTION", REGION_ID(R))
+              def int Valuable = 0
+              if (InitialProduction>0 AND 100*RProd>=TACTICAL_REGION_PCT*InitialProduction)
+                Valuable = 1
               end
-              def int Pct = 100 * NumInv / DefSafe
-              if (Pct>=TACTICAL_HOLD_RATIO_PCT)
-                AuthoriseTactical("holding " + R + " (" + NumInv + " invaders v " + Defenders + " defenders)")
-                break
+              if (Valuable==1)
+                def set One = {R}
+                def int Defenders = DivisionsInRegions(SelfID, One)
+                def int DefSafe = Defenders
+                if (DefSafe<1)
+                  DefSafe = 1
+                end
+                def int Pct = 100 * NumInv / DefSafe
+                if (Pct>=TACTICAL_HOLD_RATIO_PCT)
+                  AuthoriseTactical("holding " + R + " (" + NumInv + " invaders v " + Defenders + " defenders)")
+                  break
+                end
               end
             end
           end
