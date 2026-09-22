@@ -545,6 +545,15 @@ BLOCK EvaluateRivals()
         Why = " partner"
       end
     end
+    // the watched faction gets a line even when exempt, so the exemption
+    // is visible rather than silent
+    if (IsAlly==1 AND DEBUG_MESSAGES>=1)
+      def string TNameEx = FACTION_NAME(T)
+      if (TNameEx==DEBUG_WATCH)
+        def string MyNameEx = FACTION_NAME(SelfID)
+        Message MyNameEx + " vs " + TNameEx + " = exempt [" + Why + " ]" Position TopLeft
+      end
+    end
 
     // carried into the bookkeeping below, so declared outside the block
     def int Coverage = 100
