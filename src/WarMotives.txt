@@ -76,6 +76,13 @@ def int MODE_TERRITORIAL    = 2      // landgrab / occupier
 def int MODE_ALLY_AT_WAR    = 2      // joining a permanent ally's war
 def int MODE_PUNITIVE       = 1      // grievance / outpaced / anything else
 def int RETALIATION_MODE    = 1      // hitting back at someone who attacked us
+// A war the ENGINE ended (ceasefire, peace treaty, surrender) stays ended:
+// the faction is dropped from our war list, re-leashed, and protected from
+// any SCORED declaration for this many evaluations.  Retaliation for a real
+// attack is never blocked.  Also covers a declaration the engine refused
+// (e.g. under a treaty we cannot see): if we are not at war two evaluations
+// after ordering one, the order is withdrawn and the same protection applies.
+def int PEACE_COOLDOWN_EVALS = 10    // 10 x 6 min = one game-hour
 def int PARTNERS_EXEMPT     = 1      // a partnership (relation 2) is never scored or declared on, like an
                                      // alliance (3).  Relation codes seen in saves: 0 war, 1 neutral, 2 partner, 3 ally.
 
@@ -89,7 +96,8 @@ def int TACTICAL_HOLD_RATIO_PCT = 100 // invaders in one of our regions >= this 
 // is not).  Strategic weapons when, while at war, we have lost either this
 // many of our starting regions, or any single region that was this large a
 // share of our starting economy.
-def int EXIST_REGIONS_LOST  = 2      // e.g. the Soviet Union losing two regions
+def int EXIST_REGIONS_LOST  = 2      // at least this many starting regions lost...
+def int EXIST_REGIONS_PCT   = 20     // ...AND at least this % of them (Neutral owns 93; 3 is not existential)
 def int STRATEGIC_REGION_PCT = 25    // one region worth >= this % of our starting production
 
 // factions never leashed nor scored.  Deliberately EMPTY: a faction left out
@@ -182,6 +190,10 @@ def set RivalBorderDivs   // parallel: their visible divisions on our border at 
 def set RivalWarStreak    // parallel: consecutive evals they have been at war with a third party
 def set Released          // ids we have taken off the leash
 def set TotalWar          // subset of Released opened with AttackFaction
+def set Protected         // ids under peace cooldown (parallel to ProtectedUntil)
+def set ProtectedUntil    // evaluation count at which the cooldown ends
+def set Pending           // ids we ordered war on, awaiting the engine's WAR_STARTED
+def set PendingSince      // evaluation count when the order was given
 def set Leashed           // ids we have blocked
 
 def int MyPrevPower = -1
@@ -327,7 +339,40 @@ BLOCK ReassertLeash()
   end
 END
 
+BLOCK int IsProtected(int FactionID)
+  def int i = 0
+  def int n = SIZE_OF(Protected)
+  while (i<n)
+    if (GET_ELEMENT(Protected, i)==FactionID)
+      if (GET_ELEMENT(ProtectedUntil, i)>EvalCount)
+        return 1
+      end
+    end
+    i++
+  end
+  return 0
+END
+
+BLOCK Protect(int FactionID, string Reason)
+  Released-=FactionID
+  TotalWar-=FactionID
+  Pending-=FactionID
+  Leashed-=FactionID
+  Leash(FactionID)
+  Protected+=FactionID
+  ProtectedUntil+=(EvalCount + PEACE_COOLDOWN_EVALS)
+  if (DEBUG_MESSAGES>=1)
+    def string MyName = FACTION_NAME(SelfID)
+    def string TName = FACTION_NAME(FactionID)
+    Message MyName + " stands down against " + TName + ": " + Reason Position TopLeft
+  end
+END
+
 BLOCK ReleaseWith(int FactionID, string Reason, int Mode)
+  if (IsProtected(FactionID)==1)
+    // under a peace cooldown: scored declarations are refused.  Retaliate()
+    // clears the protection first, so a real attack is still answered.
+  else
   // a war already being fought in limited mode can be escalated to full
   def int Escalate = 0
   if ((FactionID in Released) AND Mode==2 AND not (FactionID in TotalWar))
@@ -340,6 +385,10 @@ BLOCK ReleaseWith(int FactionID, string Reason, int Mode)
     Leashed-=FactionID
     if (Mode==2)
       TotalWar+=FactionID
+    end
+    if (not (FactionID in Pending))
+      Pending+=FactionID
+      PendingSince+=EvalCount
     end
 
     // Probe results (2026-09-20, read from saves):
@@ -380,6 +429,7 @@ BLOCK ReleaseWith(int FactionID, string Reason, int Mode)
       Message MyName + Verb + TargetName + ": " + Reason Position TopLeft
     end
   end
+  end // not protected
 END
 
 // decided by the motive score; the mode was chosen from the motives present
@@ -387,8 +437,9 @@ BLOCK Release(int FactionID, string Reason, int Mode)
   ReleaseWith(FactionID, Reason, Mode)
 END
 
-// hitting back
+// hitting back at a real attack: never refused by a peace cooldown
 BLOCK Retaliate(int FactionID, string Reason)
+  Protected-=FactionID
   ReleaseWith(FactionID, Reason, RETALIATION_MODE)
 END
 
@@ -810,7 +861,10 @@ BLOCK EvaluateRivals()
       end
     end
 
-    if (Final>=WAR_THRESHOLD AND WarmedUp==1)
+    if (IsProtected(T)==1)
+      Why = Why + " (peace cooldown)"
+    end
+    if (Final>=WAR_THRESHOLD AND WarmedUp==1 AND IsProtected(T)==0)
       def int Mode = MODE_PUNITIVE
       if (AllyWar==1)
         Mode = MODE_ALLY_AT_WAR
@@ -858,6 +912,29 @@ END
 // per faction: full if any war was opened for territorial reasons.
 BLOCK ReissueWars()
   def int Reissued = 0
+  // wars the engine has ended, or declarations it refused
+  def set Ended
+  ForEach int T in Released
+    if (not ENEMIES(SelfID, T))
+      def int Since = -1
+      def int i = 0
+      def int n = SIZE_OF(Pending)
+      while (i<n)
+        if (GET_ELEMENT(Pending, i)==T)
+          Since = GET_ELEMENT(PendingSince, i)
+        end
+        i++
+      end
+      if (Since<0 OR EvalCount>=Since+2)
+        Ended+=T
+      end
+    else
+      Pending-=T
+    end
+  end
+  ForEach int T in Ended
+    Protect(T, "war ended or refused by the engine")
+  end
   ForEach int T in Released
     if (ENEMIES(SelfID, T))
       def string TNameWar = FACTION_NAME(T)
@@ -994,7 +1071,7 @@ BLOCK EvaluateNuclearDoctrine()
             end
           end
         end
-        if (Lost>=EXIST_REGIONS_LOST)
+        if (Lost>=EXIST_REGIONS_LOST AND 100*Lost>=EXIST_REGIONS_PCT*InitialRegions)
           AuthoriseStrategic("existential: " + Lost + " of " + InitialRegions + " regions lost")
         end
         if (BigLoss!="")

@@ -37,6 +37,12 @@ see is not "weak", it is unknown, and the AI will not invade what it cannot
 assess. Shooting down spy planes and keeping your army out of radar coverage
 are real defensive measures.
 
+**Peace is respected.** A war the engine ends — ceasefire, peace treaty,
+surrender — stays ended: the faction is stood down against, re-leashed and
+protected from any scored declaration for a game-hour. A declaration the
+engine refuses (for example under a treaty) is withdrawn the same way. Only a
+real attack cuts through the cooldown.
+
 **Being attacked is answered immediately.** Any faction that is attacked
 hits back at once with a rolling series of limited operations — proportionate,
 and never an invasion by itself. A war the engine brings a faction into on
@@ -48,7 +54,7 @@ categories withheld and releases them tier by tier, never taking them back:
 | Tier | Released | When |
 |---|---|---|
 | Tactical | tactical nukes, nuclear artillery | at war and being invaded in a region it may not hold (invaders ≥ defenders there) — or hit by tactical nukes first |
-| Strategic | fission, MIRV, strategic, SLBM | at war and the threat is existential — **territorial**: two or more of its starting regions lost, or any single region worth ≥25% of its starting economy — or hit by strategic weapons first |
+| Strategic | fission, MIRV, strategic, SLBM | at war and the threat is existential — **territorial**: at least 20% (and at least two) of its starting regions lost, or any single region worth ≥25% of its starting economy — or hit by strategic weapons first |
 | Salted | salted weapons | only in kind |
 
 `NUCLEAR_DOCTRINE 0` restores vanilla behaviour.
