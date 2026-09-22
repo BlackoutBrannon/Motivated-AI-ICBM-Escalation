@@ -76,6 +76,8 @@ def int MODE_TERRITORIAL    = 2      // landgrab / occupier
 def int MODE_ALLY_AT_WAR    = 2      // joining a permanent ally's war
 def int MODE_PUNITIVE       = 1      // grievance / outpaced / anything else
 def int RETALIATION_MODE    = 1      // hitting back at someone who attacked us
+def int PARTNERS_EXEMPT     = 1      // a partnership (relation 2) is never scored or declared on, like an
+                                     // alliance (3).  Relation codes seen in saves: 0 war, 1 neutral, 2 partner, 3 ally.
 
 // ---- nuclear doctrine: nukes are a last resort, released tier by tier and
 //      never taken back.  Tier 1 (tactical) when we may fail to hold a region
@@ -533,6 +535,12 @@ BLOCK EvaluateRivals()
     if (T in MyAllies)
       IsAlly = 1
       Why = " ally"
+    end
+    if (PARTNERS_EXEMPT==1 AND IsAlly==0)
+      if (GET_RELATIONS(SelfID, T)==2)
+        IsAlly = 1
+        Why = " partner"
+      end
     end
 
     // carried into the bookkeeping below, so declared outside the block
