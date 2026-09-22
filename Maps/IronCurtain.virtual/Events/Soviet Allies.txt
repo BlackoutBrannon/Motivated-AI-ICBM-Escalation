@@ -90,9 +90,12 @@ def int PARTNERS_EXEMPT     = 1      // a partnership (relation 2) is never scor
 //      is existential.  Either tier also in kind, the moment we are hit by it.
 def int NUCLEAR_DOCTRINE    = 1      // 0 = vanilla (AI free to use whatever it has)
 def int TACTICAL_HOLD_RATIO_PCT = 100 // invaders in one of our regions >= this % of our divisions there
-def int EXIST_DIVISIONS_PCT = 30     // strategic when our divisions <= this % of what we started with...
-def int EXIST_REGIONS_PCT   = 60     // ...or our regions <= this % of the start...
-def int EXIST_POWER_PCT     = 50     // ...or our power <= this % of the start (all while at war)
+// Existential = TERRITORY, not units (divisions are cheap to replace, land
+// is not).  Strategic weapons when, while at war, we have lost either this
+// many of our starting regions, or any single region that was this large a
+// share of our starting economy.
+def int EXIST_REGIONS_LOST  = 2      // e.g. the Soviet Union losing two regions
+def int STRATEGIC_REGION_PCT = 25    // one region worth >= this % of our starting production
 
 // factions never leashed nor scored.  Deliberately EMPTY: a faction left out
 // of the leash becomes the only legal outlet for the engine's war readiness
@@ -190,9 +193,9 @@ def int MyPrevPower = -1
 def int Initialised = 0
 def int NukeTier = 0          // 0 none, 1 tactical, 2 strategic (ratchet)
 def int SaltedAuthorised = 0
+def set InitialRegionSet     // the regions we started with (names)
+def int InitialProduction = 0 // their total initial production
 def int InitialRegions = 0
-def int InitialDivs = 0
-def int InitialPower = 0
 def int EvalCount = 0
 
 
@@ -874,12 +877,6 @@ END
 // blocks AFTER a war order in the same tick freeze the faction.
 // ------------------------------------------------------- nuclear doctrine --
 
-BLOCK int OwnDivisions()
-  def set D
-  select units OWNER==SelfID AND PRINCIPAL_TYPE=="Army_Division" into D
-  return SIZE_OF(D)
-END
-
 BLOCK int AtWarWithAnyone()
   def set E = GET_ENEMIES(SelfID)
   if (SIZE_OF(E)>0)
@@ -939,12 +936,14 @@ BLOCK AuthoriseSalted(string Reason)
   end
 END
 
-// Baseline for the existential tests, taken on the first evaluation.
+// Baseline for the existential test, taken on the first evaluation.
 BLOCK NuclearBaseline()
   if (InitialRegions==0)
-    InitialRegions = SIZE_OF(FACTION_REGIONS(SelfID))
-    InitialDivs = OwnDivisions()
-    InitialPower = MilitaryPower(SelfID)
+    InitialRegionSet = FACTION_REGIONS(SelfID)
+    InitialRegions = SIZE_OF(InitialRegionSet)
+    ForEach string R in InitialRegionSet
+      InitialProduction = InitialProduction + STAT("REGION_INITIAL_PRODUCTION", REGION_ID(R))
+    end
   end
 END
 
@@ -978,19 +977,24 @@ BLOCK EvaluateNuclearDoctrine()
           end
         end
       end
-      // ---- tier 2: existential
+      // ---- tier 2: existential = lost territory
       if (NukeTier<2)
-        def int Divs = OwnDivisions()
-        def int Regs = SIZE_OF(FACTION_REGIONS(SelfID))
-        def int Pwr = MilitaryPower(SelfID)
-        if (InitialDivs>0 AND 100*Divs<=EXIST_DIVISIONS_PCT*InitialDivs)
-          AuthoriseStrategic("existential: divisions " + Divs + "/" + InitialDivs)
+        def int Lost = 0
+        def string BigLoss = ""
+        ForEach string R in InitialRegionSet
+          if (REGION_OWNER(R)!=SelfID)
+            Lost++
+            def int RProd = STAT("REGION_INITIAL_PRODUCTION", REGION_ID(R))
+            if (InitialProduction>0 AND 100*RProd>=STRATEGIC_REGION_PCT*InitialProduction)
+              BigLoss = R
+            end
+          end
         end
-        if (InitialRegions>0 AND 100*Regs<=EXIST_REGIONS_PCT*InitialRegions)
-          AuthoriseStrategic("existential: regions " + Regs + "/" + InitialRegions)
+        if (Lost>=EXIST_REGIONS_LOST)
+          AuthoriseStrategic("existential: " + Lost + " of " + InitialRegions + " regions lost")
         end
-        if (InitialPower>0 AND 100*Pwr<=EXIST_POWER_PCT*InitialPower)
-          AuthoriseStrategic("existential: power " + Pwr + "/" + InitialPower)
+        if (BigLoss!="")
+          AuthoriseStrategic("existential: strategic region " + BigLoss + " lost")
         end
       end
     end
