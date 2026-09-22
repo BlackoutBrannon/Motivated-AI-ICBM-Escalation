@@ -59,6 +59,11 @@ categories withheld and releases them tier by tier, never taking them back:
 
 `NUCLEAR_DOCTRINE 0` restores vanilla behaviour.
 
+**Ownership readable in text.** Every AI unit is renamed with its faction
+tag — `[SU] Destroyer`, `[NATO] Army Division` — so who owns a unit can be
+read in the hover label rather than only from its colour. `TAG_UNIT_NAMES 0`
+turns it off.
+
 Also included:
 
 - higher war-readiness thresholds on every difficulty
