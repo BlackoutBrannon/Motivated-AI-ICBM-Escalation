@@ -60,6 +60,14 @@ def int WARMUP_MIN          = 30     // no SCORED declarations before this many 
                                      // should be honoured.  Retaliation for being attacked is never delayed.
 def int WAR_THRESHOLD       = 100    // score needed to release the leash
 def int RANDOM_FUDGE        = 20     // 0..N random points added each eval (no clockwork)
+
+// ---- standoff pressure: a rival that has been an OPPORTUNITY for a long
+//      time (score within reach of the threshold, evaluation after
+//      evaluation) slowly wears down restraint.  After STANDOFF_EVALS such
+//      evaluations there is a small chance per cycle of acting anyway.
+def int STANDOFF_MIN_SCORE  = 75     // "within reach" = base score at least this (no roll)
+def int STANDOFF_EVALS      = 15     // 15 x 6 min = 90 game-minutes of standoff first
+def int STANDOFF_CHANCE_PCT = 5      // then this % per evaluation (~1 in 20)
 def int DEBUG_MESSAGES      = 1      // 0 = silent, 1 = best-scoring rival per faction per eval, 2 = every rival
 def string DEBUG_WATCH      = "United States" // with DEBUG 1, this rival's line is always printed too
 // How wars are fought.  1 = LimitedAttack: a limited operation against that
@@ -190,6 +198,7 @@ def set RivalGrievance    // parallel: current grievance points
 def set RivalCoverage     // parallel: our intel coverage of them at last eval (%)
 def set RivalBorderDivs   // parallel: their visible divisions on our border at last eval
 def set RivalWarStreak    // parallel: consecutive evals they have been at war with a third party
+def set RivalStandoff     // parallel: consecutive evals their score sat within reach
 def set Released          // ids we have taken off the leash
 def set TotalWar          // subset of Released opened with AttackFaction
 def set Protected         // ids under peace cooldown (parallel to ProtectedUntil)
@@ -530,6 +539,7 @@ BLOCK DiscoverRivals()
           RivalCoverage+=0
           RivalBorderDivs+=0
           RivalWarStreak+=0
+          RivalStandoff+=0
           Added++
 
           Leash(O)
@@ -577,6 +587,7 @@ BLOCK EvaluateRivals()
   def set NewCoverage
   def set NewBorderDivs
   def set NewWarStreak
+  def set NewStandoff
 
   // for the one-line debug summary
   def int BestScore = -9999
@@ -594,6 +605,7 @@ BLOCK EvaluateRivals()
     def int TPrevCoverage = GET_ELEMENT(RivalCoverage, idx)
     def int TPrevBorderDivs = GET_ELEMENT(RivalBorderDivs, idx)
     def int TWarStreak = GET_ELEMENT(RivalWarStreak, idx)
+    def int TStandoff = GET_ELEMENT(RivalStandoff, idx)
 
     def int TPower = MilitaryPower(T)
     def int TGrowth = TPower - TPrevPower
@@ -877,9 +889,27 @@ BLOCK EvaluateRivals()
       Why = Why + " committed"
     end
 
+    // ---- standoff pressure
+    if (Score>=STANDOFF_MIN_SCORE AND Score<WAR_THRESHOLD AND not (T in Released))
+      TStandoff++
+    else
+      TStandoff = 0
+    end
+    def int Impatient = 0
+    if (TStandoff>=STANDOFF_EVALS)
+      Why = Why + " standoff(" + TStandoff + ")"
+      if (RAND(100)<STANDOFF_CHANCE_PCT)
+        Impatient = 1
+      end
+    end
+
     // ---- decision
     def int Roll = RAND(RANDOM_FUDGE + 1)
     def int Final = Score + Roll
+    if (Impatient==1 AND Final<WAR_THRESHOLD)
+      Final = WAR_THRESHOLD
+      Why = Why + " lost-patience"
+    end
     def int WarmedUp = 0
     if (CURRENT_TICK>=MINUTES(WARMUP_MIN))
       WarmedUp = 1
@@ -925,6 +955,7 @@ BLOCK EvaluateRivals()
     NewCoverage+=Coverage
     NewBorderDivs+=TheirBorderDivs
     NewWarStreak+=TWarStreak
+    NewStandoff+=TStandoff
 
     idx++
   end
@@ -935,6 +966,7 @@ BLOCK EvaluateRivals()
   RivalCoverage = NewCoverage
   RivalBorderDivs = NewBorderDivs
   RivalWarStreak = NewWarStreak
+  RivalStandoff = NewStandoff
   MyPrevPower = MyPower
 
   if (DEBUG_MESSAGES==1 AND BestScore>-9999)

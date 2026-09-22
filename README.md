@@ -23,6 +23,11 @@ faction* when an opportunity and a reason coincide.
 | Blind | −40 | We can see fewer than half their divisions |
 | Committed | −40 | We already chose a war elsewhere |
 
+A rival that has sat within reach of the threshold for a long time wears
+down restraint: after 90 game-minutes of such a standoff there is a small
+chance (5% per evaluation) that the AI acts on the opportunity anyway — the
+reason then reads `lost-patience`.
+
 100 points opens a war **against that faction only**, and **the motive picks
 the kind of war**: territorial reasons (land grab, occupied land) or backing
 an ally open the engine's full war, invasion included; punitive reasons
