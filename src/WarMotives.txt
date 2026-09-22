@@ -761,25 +761,6 @@ BLOCK EvaluateRivals()
     end
 
     // ---- their aircraft over our territory -> grievance
-    // DIAGNOSTIC (watched faction only): how many of their aircraft do we
-    // count under each definition?  a = CLASS==Airborne over our territory,
-    // b = same without the visibility filter, c = explicit type list visible
-    if (DEBUG_MESSAGES>=1)
-      def string TNameAir = FACTION_NAME(T)
-      if (TNameAir==DEBUG_WATCH)
-        def set Da
-        select units OWNER==T AND CLASS==Airborne AND TERRITORY==SelfID AND VISIBLE_FOR(SelfID) into Da
-        def set Db
-        select units OWNER==T AND CLASS==Airborne AND TERRITORY==SelfID into Db
-        def set Dc
-        select units OWNER==T AND PRINCIPAL_TYPE in {"AWACS", "Spy_Plane", "Fighter", "Bomber", "EW_Aircraft", "Attack", "Interceptor"} AND TERRITORY==SelfID AND VISIBLE_FOR(SelfID) into Dc
-        def int Na = SIZE_OF(Da)
-        def int Nb = SIZE_OF(Db)
-        def int Nc = SIZE_OF(Dc)
-        def string MyNameAir = FACTION_NAME(SelfID)
-        Message MyNameAir + " air-count of " + TNameAir + ": airborne-visible " + Na + " airborne-any " + Nb + " typelist-visible " + Nc Position TopLeft
-      end
-    end
     def int Overflights = AircraftOverUs(T) * OVERFLIGHT_POINTS
     if (Overflights>OVERFLIGHT_MAX)
       Overflights = OVERFLIGHT_MAX
