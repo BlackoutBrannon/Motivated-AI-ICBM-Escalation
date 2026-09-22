@@ -2,7 +2,6 @@
 def set MAP_RIVALS = {"India"}
 def set ALL_FACTIONS = {"United States", "Soviet Union", "NATO", "Warsaw Pact", "American Allies", "Soviet Allies", "China", "India", "Pakistan", "Neutral"}
 def int EVAL_OFFSET_SEC = 320  // staggers evaluations across factions
-def string FACTION_TAG = "PK"  // short tag for unit names
 
 // ===========================================================================
 //  Less Aggressive AI  -  "War Motives" layer
@@ -89,9 +88,6 @@ def int RETALIATION_MODE    = 1      // hitting back at someone who attacked us
 // (e.g. under a treaty we cannot see): if we are not at war two evaluations
 // after ordering one, the order is withdrawn and the same protection applies.
 def int PEACE_COOLDOWN_EVALS = 10    // 10 x 6 min = one game-hour
-// ---- accessibility: prefix every AI unit's name with its faction tag so
-//      ownership is readable in the hover label, not just by colour
-def int TAG_UNIT_NAMES      = 1
 def int PARTNERS_EXEMPT     = 1      // a partnership (relation 2) is never scored or declared on, like an
                                      // alliance (3).  Relation codes seen in saves: 0 war, 1 neutral, 2 partner, 3 ally.
 
@@ -202,7 +198,6 @@ def set TotalWar          // subset of Released opened with AttackFaction
 def set Protected         // ids under peace cooldown (parallel to ProtectedUntil)
 def set ProtectedUntil    // evaluation count at which the cooldown ends
 def set Pending           // ids we ordered war on, awaiting the engine's WAR_STARTED
-def set TaggedUnits       // unit ids already renamed (skip on later passes)
 def set PendingSince      // evaluation count when the order was given
 def set Leashed           // ids we have blocked
 
@@ -1092,27 +1087,8 @@ BLOCK EvaluateNuclearDoctrine()
   end
 END
 
-// Rename every unit we own that is not yet tagged.  FACTION_TAG is stamped
-// by build.ps1 ("SU", "NATO", ...).  Runs each evaluation so units deployed
-// from reserve get tagged too; already-tagged units are skipped by name.
-BLOCK TagUnitNames()
-  if (TAG_UNIT_NAMES==1)
-    def set Mine
-    select units OWNER==SelfID into Mine
-    ForEach unit U in Mine
-      def int UID = U
-      if (not (UID in TaggedUnits))
-        def string Kind = PRINCIPAL_TYPE(U)
-        SET_NAME(U, "[" + FACTION_TAG + "] " + Kind)
-        TaggedUnits+=UID
-      end
-    end
-  end
-END
-
 BLOCK EvaluateWarMotives()
   DiscoverRivals()
-  TagUnitNames()
   if (Initialised==1)
     // blocks are only ever wiped by our own war orders, and those schedule
     // their own delayed re-block - the per-evaluation safety net is only
