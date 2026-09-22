@@ -78,6 +78,27 @@ Also included:
 - (optional, off by default) a stricter home garrison before an AI can
   invade — `$StricterGarrison` in `build.ps1`
 
+## What a game looks like
+
+From a fully autonomous long run (no player involvement, late era, Iron
+Curtain):
+
+- **0:00–1:30** — peace. Every faction sits on one or two opportunities it
+  can see (the Soviets on Norway, Pakistan on West India, NATO on Bulgaria)
+  and does nothing, because opportunity alone is never enough. Four
+  partnerships form on their own.
+- **~1:30** — NATO, having stared at an open Bulgaria for ninety minutes,
+  loses patience and declares on the Warsaw Pact. The Pact answers; the
+  Soviets join under mutual defence; the allied blocs follow; Neutral is
+  dragged in by contact.
+- **~1:40** — the Pact is inside NATO territory. Tactical weapons are
+  authorised on both sides and used — 33 battlefield shells in ten minutes.
+  Nobody has lost enough land for the strategic tier; global fallout stays
+  negligible.
+
+That is the intended shape: long standoffs, one reasoned war at a time,
+proportionate escalation.
+
 ## Install
 
 Copy this folder to `<game>\MODS\LessAggressiveAI\` and enable
