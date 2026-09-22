@@ -886,6 +886,11 @@ END
 BLOCK AuthoriseTactical(string Reason)
   if (NukeTier<1)
     NukeTier = 1
+    // geneva (warhead) categories are the form the campaign proves in play;
+    // the ai_category form is kept alongside (it parses; effect unverified)
+    ENABLE Missiles geneva "Offensive Tactical Nukes"
+    ENABLE Missiles geneva "Defencive Tactical Nukes"
+    ENABLE Missiles geneva "Light Gravity Bombs"
     ENABLE Missiles ai_category "Tactical Nuclear"
     def set AllArmies
     select units OWNER==SelfID AND PRINCIPAL_TYPE in {"Army_Division", "Army_Base"} into AllArmies
@@ -902,6 +907,9 @@ BLOCK AuthoriseStrategic(string Reason)
   if (NukeTier<2)
     AuthoriseTactical(Reason)
     NukeTier = 2
+    ENABLE Missiles geneva "High-Yield Nukes"
+    ENABLE Missiles geneva "Basic Fission Weapons"
+    ENABLE Missiles geneva "Nuclear MIRV"
     ENABLE Missiles ai_category "Basic Nuclear"
     ENABLE Missiles ai_category "Small MIRV"
     ENABLE Missiles ai_category "Strategic Nuclear"
@@ -917,6 +925,7 @@ BLOCK AuthoriseSalted(string Reason)
   if (SaltedAuthorised==0)
     SaltedAuthorised = 1
     AuthoriseStrategic(Reason)
+    ENABLE Missiles geneva "Salted Weapons"
     ENABLE Missiles ai_category "Salted Weapons"
     if (DEBUG_MESSAGES>=1)
       def string MyName = FACTION_NAME(SelfID)
@@ -1020,12 +1029,26 @@ BLOCK SetWarMotives()
   // nuclear doctrine: everything nuclear withheld until a tier is earned,
   // or until it is used on us (in kind)
   if (NUCLEAR_DOCTRINE==1)
+    DISABLE Missiles geneva "Offensive Tactical Nukes"
+    DISABLE Missiles geneva "Defencive Tactical Nukes"
+    DISABLE Missiles geneva "Light Gravity Bombs"
+    DISABLE Missiles geneva "High-Yield Nukes"
+    DISABLE Missiles geneva "Basic Fission Weapons"
+    DISABLE Missiles geneva "Nuclear MIRV"
+    DISABLE Missiles geneva "Salted Weapons"
     DISABLE Missiles ai_category "Tactical Nuclear"
     DISABLE Missiles ai_category "Basic Nuclear"
     DISABLE Missiles ai_category "Small MIRV"
     DISABLE Missiles ai_category "Strategic Nuclear"
     DISABLE Missiles ai_category "SLBM"
     DISABLE Missiles ai_category "Salted Weapons"
+    on attacked anything by geneva "Offensive Tactical Nukes" AuthoriseTactical("in kind")
+    on attacked anything by geneva "Defencive Tactical Nukes" AuthoriseTactical("in kind")
+    on attacked anything by geneva "Light Gravity Bombs" AuthoriseTactical("in kind")
+    on attacked anything by geneva "High-Yield Nukes" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "Basic Fission Weapons" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "Nuclear MIRV" AuthoriseStrategic("in kind")
+    on attacked anything by geneva "Salted Weapons" AuthoriseSalted("in kind")
     on attacked anything by ai_category "Tactical Nuclear" AuthoriseTactical("in kind")
     on attacked anything by ai_category "Basic Nuclear" AuthoriseStrategic("in kind")
     on attacked anything by ai_category "Small MIRV" AuthoriseStrategic("in kind")
