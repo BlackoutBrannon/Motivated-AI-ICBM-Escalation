@@ -90,6 +90,50 @@ foreach ($map in $maps.Keys) {
   }
 }
 
+# --- sanity check the script before stamping it anywhere -------------------
+# every block called must exist and be defined ABOVE its first use (the parser
+# only knows blocks it has already read), and control flow must balance
+$defs = @{}
+$srcLines = $src -split "`r?`n"
+for ($i = 0; $i -lt $srcLines.Count; $i++) {
+  if ($srcLines[$i] -cmatch '^BLOCK (?:int )?(\w+)\(') { if (-not $defs.ContainsKey($Matches[1])) { $defs[$Matches[1]] = $i } }
+}
+# language keywords, operators and engine functions that are not our blocks
+$builtin = @('if','while','ForEach','not','AND','OR','def','return','break',
+  'SIZE_OF','GET_ELEMENT','RAND','MIN','MAX','LERP','DISTANCE','SELECT',
+  'REGION_OWNER','REGION_ID','REGION_NAME','REGION_ORIGINAL_OWNER','REGION_CITIES',
+  'FACTION_ID','FACTION_NAME','FACTION_REGIONS','FACTION_SCORE','GET_FACTIONS',
+  'GET_ENEMIES','GET_ALLIES','GET_PERMANENT_ALLIES','GET_RELATIONS','PERMANENT_ALLIES',
+  'ENEMIES','ENEMY','ALLIES','ADJACENT_REGIONS','STAT','MINUTES','SECONDS','HOURS',
+  'VISIBLE_FOR','PRINCIPAL_TYPE','OWNER','CLASS','TERRITORY','REGION','CURRENT_TICK',
+  'SET_NAME','ID_NAME','CREATE_UNIT','MAKE_GROUP','HEALTH','POSITION','GET_BIT')
+$problems = @()
+for ($i = 0; $i -lt $srcLines.Count; $i++) {
+  $line = $srcLines[$i]
+  $line = [regex]::Replace($line, '"[^"]*"', '""')   # blank out string literals
+  $line = [regex]::Replace($line, '//.*$', '')       # and trailing comments
+  if ($line -match '^\s*$') { continue }
+  foreach ($m in [regex]::Matches($line, '\b([A-Za-z_]\w*)\s*\(')) {
+    $name = $m.Groups[1].Value
+    if ($builtin -contains $name) { continue }
+    if ($line -cmatch ('^BLOCK (?:int )?' + [regex]::Escape($name) + '\(')) { continue }
+    if (-not $defs.ContainsKey($name)) { $problems += "line $($i+1): calls '$name' which is not defined"; continue }
+    if ($defs[$name] -gt $i) { $problems += "line $($i+1): calls '$name', defined later at line $($defs[$name]+1)" }
+  }
+}
+$opens = ($srcLines | Where-Object { $_ -cmatch '^\s*(if|while|ForEach)\b' }).Count
+$ends  = ($srcLines | Where-Object { $_ -cmatch '^\s*end(\s*//.*)?\s*$' }).Count
+if ($opens -ne $ends) { $problems += "control flow unbalanced: $opens openers vs $ends 'end' lines" }
+$nb = ($srcLines | Where-Object { $_ -cmatch '^BLOCK ' }).Count
+$ne = ($srcLines | Where-Object { $_ -cmatch '^END\s*$' }).Count
+if ($nb -ne $ne) { $problems += "BLOCK/END unbalanced: $nb vs $ne" }
+if ($problems.Count) {
+  Write-Host "src\WarMotives.txt has problems:" -ForegroundColor Red
+  $problems | ForEach-Object { Write-Host "  $_" -ForegroundColor Red }
+  throw "refusing to build"
+}
+Write-Host "src\WarMotives.txt checks out ($($defs.Count) blocks, $opens/$ends control, $nb/$ne blocks)."
+
 $count = 0
 foreach ($map in $maps.Keys) {
   # the map's DefaultEnemy pairs -> per-faction MAP_RIVALS set (the "old

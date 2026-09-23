@@ -532,6 +532,29 @@ END
 // engine's own retaliation logic decide the response.  Called from hooks with
 // LITERAL faction names stamped by build.ps1 (a variable argument would be
 // re-evaluated when the event fires).
+// Add to our grievance against one faction (parallel sets are rebuilt in
+// place; there is no element assignment in this language).
+BLOCK AddGrievance(int FactionID, int Points)
+  def int idx = IndexOfRival(FactionID)
+  if (idx>=0)
+    def set Rebuilt
+    def int i = 0
+    def int n = SIZE_OF(RivalGrievance)
+    while (i<n)
+      def int V = GET_ELEMENT(RivalGrievance, i)
+      if (i==idx)
+        V = V + Points
+        if (V>GRIEVANCE_MAX)
+          V = GRIEVANCE_MAX
+        end
+      end
+      Rebuilt+=V
+      i++
+    end
+    RivalGrievance = Rebuilt
+  end
+END
+
 // A shot that destroyed nothing: log it as a grievance and let it accumulate.
 // Repeated incidents will eventually earn a punitive war through the normal
 // scoring; a single auto-engage will not.
