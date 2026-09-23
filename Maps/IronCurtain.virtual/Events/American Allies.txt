@@ -73,8 +73,15 @@ def int RANDOM_FUDGE        = 20     // 0..N random points added each eval (no c
 def int STANDOFF_MIN_SCORE  = 75     // "within reach" = base score at least this (no roll)
 def int STANDOFF_EVALS      = 15     // 15 x 6 min = 90 game-minutes of standoff first
 def int STANDOFF_CHANCE_PCT = 5      // then this % per evaluation (~1 in 20)
-def int DEBUG_MESSAGES      = 1      // 0 = silent, 1 = best-scoring rival per faction per eval, 2 = every rival
-def string DEBUG_WATCH      = "United States" // with DEBUG 1, this rival's line is always printed too
+// On-screen reporting:
+//   0 = silent
+//   1 = events only (release default): a faction declares war, stands down,
+//       or authorises nuclear weapons - each with the reason that caused it
+//   2 = + each faction's top-scoring rival every evaluation, and every
+//       pairing with DEBUG_WATCH (tuning and diagnosis)
+//   3 = + every rival pairing of every faction (very noisy)
+def int DEBUG_MESSAGES      = 1
+def string DEBUG_WATCH      = "United States" // at level 2, this rival's line is always printed
 // How wars are fought.  1 = LimitedAttack: a limited operation against that
 // faction only, re-issued every evaluation while at war, invasion stays
 // blocked.  2 = AttackFaction: the engine's full war against that faction -
@@ -589,12 +596,12 @@ BLOCK DiscoverRivals()
     MyPrevPower = MilitaryPower(SelfID)
     Initialised = 1
 
-    if (DEBUG_MESSAGES>=1)
+    if (DEBUG_MESSAGES>=2)
       def int NumRivals = SIZE_OF(Rivals)
       Message MyName + " war-motives online, tracking " + NumRivals + " rivals, power " + MyPrevPower Position TopLeft
     end
   else
-    if (Added>0 AND DEBUG_MESSAGES>=1)
+    if (Added>0 AND DEBUG_MESSAGES>=2)
       def int NumRivals = SIZE_OF(Rivals)
       Message MyName + " now tracking " + NumRivals + " rivals" Position TopLeft
     end
@@ -671,7 +678,7 @@ BLOCK EvaluateRivals()
     end
     // the watched faction gets a line even when exempt, so the exemption
     // is visible rather than silent
-    if (IsAlly==1 AND DEBUG_MESSAGES>=1)
+    if (IsAlly==1 AND DEBUG_MESSAGES>=2)
       def string TNameEx = FACTION_NAME(T)
       if (TNameEx==DEBUG_WATCH)
         def string MyNameEx = FACTION_NAME(SelfID)
@@ -982,7 +989,7 @@ BLOCK EvaluateRivals()
 
     if (not (T in Released))
       def string TNameDbg = FACTION_NAME(T)
-      if (DEBUG_MESSAGES==2 OR (DEBUG_MESSAGES==1 AND TNameDbg==DEBUG_WATCH))
+      if (DEBUG_MESSAGES>=3 OR (DEBUG_MESSAGES==2 AND TNameDbg==DEBUG_WATCH))
         def string MyName = FACTION_NAME(SelfID)
         Message MyName + " vs " + TNameDbg + " = " + Final + " [" + Why + " ]" Position TopLeft
       end
@@ -1037,7 +1044,7 @@ BLOCK EvaluateRivals()
   RivalWarTheirRegions = NewWarTheirRegions
   MyPrevPower = MyPower
 
-  if (DEBUG_MESSAGES==1 AND BestScore>-9999)
+  if (DEBUG_MESSAGES>=2 AND BestScore>-9999)
     def string MyName = FACTION_NAME(SelfID)
     Message MyName + " (pwr " + MyPower + ") top: " + BestName + " " + BestScore + "/" + WAR_THRESHOLD + " [" + BestWhy + " ]" Position TopLeft
   end

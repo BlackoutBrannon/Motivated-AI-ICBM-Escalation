@@ -69,7 +69,7 @@ if ($StricterGarrison) {
 # Overrides the Color of each Player in the map file (opened directly by the
 # engine).  Built for a weak red cone (protan): factions are separated by
 # LIGHTNESS and the blue-yellow axis, no purples, reds kept light.
-$ColorblindPalette = $true
+$ColorblindPalette = $false
 $palette = @{
   'United States'='00A0FF'; 'Soviet Union'='FF6040'; 'NATO'='FFFFFF'; 'Warsaw Pact'='3A1E00'
   'American Allies'='00E0A0'; 'Soviet Allies'='8B0000'; 'China'='FFE000'; 'India'='FFB000'

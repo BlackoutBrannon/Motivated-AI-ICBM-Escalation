@@ -71,8 +71,8 @@ categories withheld and releases them tier by tier, never taking them back:
 
 `NUCLEAR_DOCTRINE 0` restores vanilla behaviour.
 
-**Colourblind palette (optional).** `$ColorblindPalette` in `build.ps1`
-replaces the ten faction colours with a set built for a weak red cone:
+**Colourblind palette (optional, off by default).** Setting
+`$ColorblindPalette = $true` in `build.ps1` replaces the ten faction colours with a set built for a weak red cone:
 factions are separated by lightness and the blue–yellow axis, there are no
 purples, and reds are kept light so they cannot collapse into the browns.
 Your side is bright (sky blue, white, mint); the Eastern bloc is dark (brown,
@@ -129,9 +129,17 @@ After editing anything in `src/`, run
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 
-and start a **new** game. Tunables (threshold, weights, warm-up, debug) are
-at the top of `src/WarMotives.txt`. `DEBUG_MESSAGES 1` prints each AI's
-reasoning on screen every evaluation; set it to `0` for normal play.
+and start a **new** game. Tunables (threshold, weights, warm-up, reporting)
+are at the top of `src/WarMotives.txt`.
+
+`DEBUG_MESSAGES` controls what the AI tells you on screen:
+
+| Level | Shows |
+|---|---|
+| 0 | nothing |
+| **1** (default) | **events only** — a faction declares war, stands down, or authorises nuclear weapons, each with the reason |
+| 2 | + every faction's top-scoring rival each evaluation, and every pairing with `DEBUG_WATCH` |
+| 3 | + every rival pairing of every faction (very noisy) |
 
 ## Why the generated copies
 
