@@ -142,6 +142,9 @@ are at the top of `src/WarMotives.txt`.
 | 2 | + every faction's top-scoring rival each evaluation, and every pairing with `DEBUG_WATCH` |
 | 3 | + every rival pairing of every faction (very noisy) |
 
+See [NOTES.md](NOTES.md) for how the mod works underneath, the engine
+behaviour it had to be built around, and what is still open.
+
 ## Why the generated copies
 
 Files the game reaches through `USE` resolve to the base game, so a mod
