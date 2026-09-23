@@ -30,7 +30,8 @@ unless marked otherwise.
   one faction means war regardless of score
 - Aircraft-at-home no longer provoke
 - EMP as a tactical weapon
-- Territorial loss having to be *held* for three evaluations
+- Territorial loss having to be *held* for three evaluations (broad attrition
+  only — a vital region about to fall authorises strategic immediately)
 - The `ON Destroyed anything ATTACKER "X"` hook form
 
 ## Engine facts, all learned the hard way

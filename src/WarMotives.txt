@@ -127,6 +127,12 @@ def int EXIST_HOLD_EVALS    = 3      // ...AND held against us for this many con
                                      // REGION_OWNER flips while a region is merely CONTESTED, so a
                                      // snapshot counts battlefields as conquests; a real loss persists.
 def int STRATEGIC_REGION_PCT = 25    // one region worth >= this % of our starting production
+// ...and that one is NOT subject to the hold requirement.  A vital region we
+// are about to lose is existential the moment it is about to be lost: if
+// Moscow may fall the answer is now, not three evaluations from now.  What
+// keeps a unit merely crossing a contested border from reading as a lost
+// capital is the invaders-v-defenders test below, not a timer.
+def int STRATEGIC_HOLD_RATIO_PCT = 100 // invaders in a vital region >= this % of our divisions there
 
 // factions never leashed nor scored.  Deliberately EMPTY: a faction left out
 // of the leash becomes the only legal outlet for the engine's war readiness
@@ -257,7 +263,6 @@ def set InitialRegionSet     // the regions we started with (names)
 def int InitialProduction = 0 // their total initial production
 def int InitialRegions = 0
 def int RegionsLostStreak = 0 // consecutive evaluations with enough territory lost
-def int BigLossStreak = 0     // consecutive evaluations with a strategically vital region lost
 def int EvalCount = 0
 
 
@@ -1319,17 +1324,14 @@ BLOCK EvaluateNuclearDoctrine()
           end
         end
       end
-      // ---- tier 2: existential = lost territory
+      // ---- tier 2: existential = lost territory.  Attrition across the map
+      //      has to be real to count, so a broad loss must be HELD - a
+      //      snapshot would read every battlefield as a conquest.
       if (NukeTier<2)
         def int Lost = 0
-        def string BigLoss = ""
         ForEach string R in InitialRegionSet
           if (REGION_OWNER(R)!=SelfID)
             Lost++
-            def int RProd = STAT("REGION_INITIAL_PRODUCTION", REGION_ID(R))
-            if (InitialProduction>0 AND 100*RProd>=STRATEGIC_REGION_PCT*InitialProduction)
-              BigLoss = R
-            end
           end
         end
         if (Lost>=EXIST_REGIONS_LOST AND 100*Lost>=EXIST_REGIONS_PCT*InitialRegions)
@@ -1340,17 +1342,36 @@ BLOCK EvaluateNuclearDoctrine()
         if (RegionsLostStreak>=EXIST_HOLD_EVALS)
           AuthoriseStrategic("existential: " + Lost + " of " + InitialRegions + " regions lost and held")
         end
-        // the vital-region test needs the same hold requirement: REGION_OWNER
-        // reports the occupier while a region is merely contested, and for a
-        // small concentrated faction (Pakistan owns one region, so it is 100%
-        // of their economy) a single contested tick would otherwise be enough
-        if (BigLoss!="")
-          BigLossStreak++
-        else
-          BigLossStreak = 0
-        end
-        if (BigLossStreak>=EXIST_HOLD_EVALS)
-          AuthoriseStrategic("existential: strategic region " + BigLoss + " lost and held")
+      end
+      // ---- tier 2: a VITAL region we may not hold - immediately.  Nobody
+      //      waits out a timer while the capital is being taken.  This is the
+      //      tactical tier's hold test at the strategic threshold: enemy
+      //      ground troops in the region and at least as many of them as we
+      //      have divisions defending it.  A unit merely crossing a contested
+      //      border does not outnumber a garrison, which is what stops a
+      //      one-region faction (Pakistan: 100% of its economy) from
+      //      authorising strategic weapons over an incursion.
+      if (NukeTier<2)
+        ForEach string R in InitialRegionSet
+          def int RProdV = STAT("REGION_INITIAL_PRODUCTION", REGION_ID(R))
+          if (InitialProduction>0 AND 100*RProdV>=STRATEGIC_REGION_PCT*InitialProduction)
+            def set InvV
+            select units ENEMY(SelfID) AND CLASS==Ground AND REGION==R into InvV
+            def int NumInvV = SIZE_OF(InvV)
+            if (NumInvV>0)
+              def set OneV = {R}
+              def int DefendersV = DivisionsInRegions(SelfID, OneV)
+              def int DefSafeV = DefendersV
+              if (DefSafeV<1)
+                DefSafeV = 1
+              end
+              def int PctV = 100 * NumInvV / DefSafeV
+              if (PctV>=STRATEGIC_HOLD_RATIO_PCT)
+                AuthoriseStrategic("existential: may lose " + R + " (" + NumInvV + " invaders v " + DefendersV + " defenders)")
+                break
+              end
+            end
+          end
         end
       end
     end

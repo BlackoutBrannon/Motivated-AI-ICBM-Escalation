@@ -64,12 +64,15 @@ limited strikes, never an invasion by themselves. A war the engine brings a
 faction into on behalf of a permanent ally is fought in full.
 
 **Nuclear weapons are a last resort.** Every AI starts with all nuclear
-categories withheld and releases them tier by tier, never taking them back:
+categories withheld and releases them tier by tier, never taking them back.
+Broad attrition has to be *held* to count, because a contested region reads
+as a conquest in any single snapshot — but a **vital** region about to fall
+needs no waiting period. If Moscow may be lost, the answer is now:
 
 | Tier | Released | When |
 |---|---|---|
 | Tactical | tactical nukes, nuclear artillery, EMP | at war and being invaded in a region **worth defending** (≥5% of its starting economy) that it may not hold (invaders ≥ defenders there), or having already lost two starting regions — or hit by tactical nukes first |
-| Strategic | fission, MIRV, strategic, SLBM | at war and the threat is existential — **territorial**: at least 20% (and at least two) of its starting regions lost **and held for three evaluations** (a contested region reads as lost in a snapshot), or any single region worth ≥25% of its starting economy, likewise held — or hit by strategic weapons first |
+| Strategic | fission, MIRV, strategic, SLBM | at war and the threat is existential — **territorial**: at least 20% (and at least two) of its starting regions lost **and held for three evaluations** (a contested region reads as lost in a snapshot), or — **immediately** — a single region worth ≥25% of its starting economy that it may not hold (invaders there ≥ defenders) — or hit by strategic weapons first |
 | Salted | salted weapons | only in kind |
 
 `NUCLEAR_DOCTRINE 0` restores vanilla behaviour.
