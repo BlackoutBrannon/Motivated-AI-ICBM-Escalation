@@ -123,6 +123,9 @@ def int TACTICAL_REGIONS_LOST = 2    // OR we have already lost this many starti
 // share of our starting economy.
 def int EXIST_REGIONS_LOST  = 2      // at least this many starting regions lost...
 def int EXIST_REGIONS_PCT   = 20     // ...AND at least this % of them (Neutral owns 93; 3 is not existential)
+def int EXIST_HOLD_EVALS    = 3      // ...AND held against us for this many consecutive evaluations.
+                                     // REGION_OWNER flips while a region is merely CONTESTED, so a
+                                     // snapshot counts battlefields as conquests; a real loss persists.
 def int STRATEGIC_REGION_PCT = 25    // one region worth >= this % of our starting production
 
 // factions never leashed nor scored.  Deliberately EMPTY: a faction left out
@@ -238,6 +241,7 @@ def int SaltedAuthorised = 0
 def set InitialRegionSet     // the regions we started with (names)
 def int InitialProduction = 0 // their total initial production
 def int InitialRegions = 0
+def int RegionsLostStreak = 0 // consecutive evaluations with enough territory lost
 def int EvalCount = 0
 
 
@@ -1122,6 +1126,7 @@ BLOCK AuthoriseTactical(string Reason)
     ENABLE Missiles geneva "Offensive Tactical Nukes" FOR ME
     ENABLE Missiles geneva "Defencive Tactical Nukes" FOR ME
     ENABLE Missiles geneva "Light Gravity Bombs" FOR ME
+    ENABLE Missiles geneva "EMP Weapons" FOR ME   // area denial, not a city-killer
     ENABLE Missiles ai_category "Tactical Nuclear" FOR ME
     def set AllArmies
     select units OWNER==SelfID AND PRINCIPAL_TYPE in {"Army_Division", "Army_Base"} into AllArmies
@@ -1141,7 +1146,6 @@ BLOCK AuthoriseStrategic(string Reason)
     ENABLE Missiles geneva "High-Yield Nukes" FOR ME
     ENABLE Missiles geneva "Basic Fission Weapons" FOR ME
     ENABLE Missiles geneva "Nuclear MIRV" FOR ME
-    ENABLE Missiles geneva "EMP Weapons" FOR ME
     ENABLE Missiles ai_category "Basic Nuclear" FOR ME
     ENABLE Missiles ai_category "Small MIRV" FOR ME
     ENABLE Missiles ai_category "Strategic Nuclear" FOR ME
@@ -1239,7 +1243,12 @@ BLOCK EvaluateNuclearDoctrine()
           end
         end
         if (Lost>=EXIST_REGIONS_LOST AND 100*Lost>=EXIST_REGIONS_PCT*InitialRegions)
-          AuthoriseStrategic("existential: " + Lost + " of " + InitialRegions + " regions lost")
+          RegionsLostStreak++
+        else
+          RegionsLostStreak = 0
+        end
+        if (RegionsLostStreak>=EXIST_HOLD_EVALS)
+          AuthoriseStrategic("existential: " + Lost + " of " + InitialRegions + " regions lost and held")
         end
         if (BigLoss!="")
           AuthoriseStrategic("existential: strategic region " + BigLoss + " lost")
@@ -1310,6 +1319,7 @@ BLOCK SetWarMotives()
     on attacked anything by geneva "Offensive Tactical Nukes" AuthoriseTactical("in kind")
     on attacked anything by geneva "Defencive Tactical Nukes" AuthoriseTactical("in kind")
     on attacked anything by geneva "Light Gravity Bombs" AuthoriseTactical("in kind")
+    on attacked anything by geneva "EMP Weapons" AuthoriseTactical("in kind")
     on attacked anything by geneva "High-Yield Nukes" AuthoriseTactical("in kind")
     on attacked anything by geneva "Basic Fission Weapons" AuthoriseTactical("in kind")
     on attacked anything by geneva "Heavy Gravity Bombs" AuthoriseStrategic("in kind")
@@ -1322,7 +1332,6 @@ BLOCK SetWarMotives()
     on attacked anything by geneva "Unitary Light Nuclear ICBM" AuthoriseStrategic("in kind")
     on attacked anything by geneva "Unitary Nuclear MRBM" AuthoriseStrategic("in kind")
     on attacked anything by geneva "Unitary Nuclear SLBM" AuthoriseStrategic("in kind")
-    on attacked anything by geneva "EMP Weapons" AuthoriseStrategic("in kind")
     on attacked anything by ai_category "Strategic Nuclear" AuthoriseStrategic("in kind")
     on attacked anything by geneva "Salted Weapons" AuthoriseSalted("in kind")
     on attacked anything by ai_category "Salted Weapons" AuthoriseSalted("in kind")
