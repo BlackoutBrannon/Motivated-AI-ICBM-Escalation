@@ -89,6 +89,10 @@ unless marked otherwise.
   faction names into the hooks for this reason.
 - `REGION_OWNER` reports the occupier while a region is merely *contested*,
   so a snapshot counts battlefields as conquests.
+- `Region_Invaded` fires on mere unit presence, not on an actual assault —
+  auto-deploy across a disputed border was enough to start an India-Pakistan
+  war at 0:06, before any evaluation had run. It cannot be treated as an
+  attack.
 - Factions build one item at a time, ~0.4 cost-units per 10 game-minutes.
   Warhead-bearing items are throttled by warhead production efficiency
   (Nuclear Fuel techs cap it at 40/55/70/85/100%). AI-built units sit in

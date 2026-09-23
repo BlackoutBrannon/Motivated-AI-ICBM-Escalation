@@ -193,6 +193,11 @@ def int AIRZONE_KM          = 400    // "our zone" = over our territory, or with
                                      // our radars / airbases WHILE NOT OVER THEIR OWN - loitering just off
                                      // our coast provokes; sitting on their own airfield near the border
                                      // does not, however well we can see it
+def int INCURSION_POINTS    = 40     // their ground units inside our borders without a shot fired.
+                                     // NOT an immediate war: Region_Invaded fires on mere presence, so
+                                     // auto-deploy across a disputed border (India/Pakistan at 0:06) would
+                                     // otherwise start a war before the first evaluation.  The occupier
+                                     // motive handles ground they actually keep.
 def int INCIDENT_POINTS     = 20     // a shot fired at us that destroys nothing: an incident, not a war.
                                      // Auto-engage and stray patrols cause these constantly, so they
                                      // accumulate as grievance instead of opening a war on the spot.
@@ -560,7 +565,16 @@ BLOCK OnIncidentBy(string AttackerName)
   end
 END
 
-// Something of ours was destroyed, or our territory invaded: hit back now.
+// Their units are inside our borders but nothing has been destroyed: a
+// serious grievance, not yet a war.
+BLOCK OnIncursionBy(string AttackerName)
+  def int A = FACTION_ID(AttackerName)
+  if (A!=SelfID AND not (A in Released))
+    AddGrievance(A, INCURSION_POINTS)
+  end
+END
+
+// Something of ours was destroyed: hit back now.
 BLOCK OnAttackedBy(string AttackerName)
   def int A = FACTION_ID(AttackerName)
   if (A!=SelfID AND not (A in Released))
