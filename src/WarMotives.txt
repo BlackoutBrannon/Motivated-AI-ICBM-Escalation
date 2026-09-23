@@ -257,6 +257,7 @@ def set InitialRegionSet     // the regions we started with (names)
 def int InitialProduction = 0 // their total initial production
 def int InitialRegions = 0
 def int RegionsLostStreak = 0 // consecutive evaluations with enough territory lost
+def int BigLossStreak = 0     // consecutive evaluations with a strategically vital region lost
 def int EvalCount = 0
 
 
@@ -1334,8 +1335,17 @@ BLOCK EvaluateNuclearDoctrine()
         if (RegionsLostStreak>=EXIST_HOLD_EVALS)
           AuthoriseStrategic("existential: " + Lost + " of " + InitialRegions + " regions lost and held")
         end
+        // the vital-region test needs the same hold requirement: REGION_OWNER
+        // reports the occupier while a region is merely contested, and for a
+        // small concentrated faction (Pakistan owns one region, so it is 100%
+        // of their economy) a single contested tick would otherwise be enough
         if (BigLoss!="")
-          AuthoriseStrategic("existential: strategic region " + BigLoss + " lost")
+          BigLossStreak++
+        else
+          BigLossStreak = 0
+        end
+        if (BigLossStreak>=EXIST_HOLD_EVALS)
+          AuthoriseStrategic("existential: strategic region " + BigLoss + " lost and held")
         end
       end
     end

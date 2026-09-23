@@ -69,7 +69,7 @@ categories withheld and releases them tier by tier, never taking them back:
 | Tier | Released | When |
 |---|---|---|
 | Tactical | tactical nukes, nuclear artillery, EMP | at war and being invaded in a region **worth defending** (≥5% of its starting economy) that it may not hold (invaders ≥ defenders there), or having already lost two starting regions — or hit by tactical nukes first |
-| Strategic | fission, MIRV, strategic, SLBM | at war and the threat is existential — **territorial**: at least 20% (and at least two) of its starting regions lost **and held for three evaluations** (a contested region reads as lost in a snapshot), or any single region worth ≥25% of its starting economy — or hit by strategic weapons first |
+| Strategic | fission, MIRV, strategic, SLBM | at war and the threat is existential — **territorial**: at least 20% (and at least two) of its starting regions lost **and held for three evaluations** (a contested region reads as lost in a snapshot), or any single region worth ≥25% of its starting economy, likewise held — or hit by strategic weapons first |
 | Salted | salted weapons | only in kind |
 
 `NUCLEAR_DOCTRINE 0` restores vanilla behaviour.
