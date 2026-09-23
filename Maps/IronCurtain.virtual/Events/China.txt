@@ -194,8 +194,10 @@ def int BUILDUP_POINTS      = 15     // ...AND they added more since last eval =
                                      // (a big standing garrison is the status quo, not a provocation)
 def int OVERFLIGHT_POINTS   = 8      // per visible rival aircraft in our air-defence zone, per eval (snapshot)
 def int OVERFLIGHT_MAX      = 32     // cap per eval
-def int AIRZONE_KM          = 400    // "our zone" = over our territory OR within this distance of one of
-                                     // our radars / airbases (loitering just off the coast counts)
+def int AIRZONE_KM          = 400    // "our zone" = over our territory, or within this distance of one of
+                                     // our radars / airbases WHILE NOT OVER THEIR OWN - loitering just off
+                                     // our coast provokes; sitting on their own airfield near the border
+                                     // does not, however well we can see it
 def int INCIDENT_POINTS     = 20     // a shot fired at us that destroys nothing: an incident, not a war.
                                      // Auto-engage and stray patrols cause these constantly, so they
                                      // accumulate as grievance instead of opening a war on the spot.
@@ -326,7 +328,7 @@ BLOCK int AircraftOverUs(int FactionID)
   select units OWNER==SelfID AND PRINCIPAL_TYPE in {"Fixed_LW_radar", "Over_Horizon_radar", "Airport", "Tactical_Airbase", "Specialized_Airport"} into Sensors
   ForEach unit Sensor in Sensors
     def set Near
-    select units OWNER==FactionID AND CLASS==Airborne AND VISIBLE_FOR(SelfID) AND DISTANCE(Sensor)<AIRZONE_KM into Near
+    select units OWNER==FactionID AND CLASS==Airborne AND VISIBLE_FOR(SelfID) AND TERRITORY!=FactionID AND DISTANCE(Sensor)<AIRZONE_KM into Near
     ForEach unit N in Near
       def int NID = N
       if (not (NID in Seen))
