@@ -439,7 +439,12 @@ BLOCK Protect(int FactionID, string Reason)
   Leashed-=FactionID
   Leash(FactionID)
   Protected+=FactionID
-  ProtectedUntil+=(EvalCount + PEACE_COOLDOWN_EVALS)
+  // ENGINE: `set += (a + b)` appends BOTH operands as separate elements, it
+  // does not evaluate the expression.  Seen in a save as ProtectedUntil
+  // {43, 10} where 53 was meant - which desynced it from Protected and made
+  // every cooldown expire on the evaluation that created it.  Compute first.
+  def int Until = EvalCount + PEACE_COOLDOWN_EVALS
+  ProtectedUntil+=Until
   if (DEBUG_MESSAGES>=1)
     def string MyName = FACTION_NAME(SelfID)
     def string TName = FACTION_NAME(FactionID)
@@ -677,7 +682,10 @@ BLOCK DiscoverRivals()
           RivalBorderDivs+=0
           RivalWarStreak+=0
           RivalStandoff+=0
-          RivalWarSince+=(0 - 1)
+          RivalWarSince+=(0 - 1)   // constant, folded at parse time: saves show
+                                   // one element per rival.  A RUNTIME
+                                   // expression here would append two - see
+                                   // the note in Protect().
           RivalWarMyRegions+=0
           RivalWarTheirRegions+=0
           RivalLosses+=0
