@@ -99,9 +99,15 @@ def int RETALIATION_MODE    = 1      // hitting back at someone who attacked us
 // after ordering one, the order is withdrawn and the same protection applies.
 // ---- stalemate: a war that has gone nowhere for a long time is wound down.
 //      Neither side has taken ground and we are not making progress, so the
-//      faction stops prosecuting it and stands down (and, once the syntax is
-//      verified, will offer a ceasefire).
-def int STALEMATE_EVALS     = 20     // 20 x 6 min = two game-hours of war...
+//      faction stops prosecuting it and offers a ceasefire.  Both sides have
+//      to reach this independently before the engine ends the war.
+//
+//      This is the only drain on the map's wars, and at 20 it was slower than
+//      the fill: a 4.5-hour run ended with all ten factions at war across 26
+//      pairs, because every faction that was WINNING kept disqualifying its
+//      pairs (a stand-down needs no net ground change on either side) while
+//      new wars kept forming.  72 minutes is still a long pointless war.
+def int STALEMATE_EVALS     = 12     // 12 x 6 min = 72 game-minutes of war...
 def int STALEMATE_GAIN_PCT  = 0      // ...with no net region change either way
 
 def int PEACE_COOLDOWN_EVALS = 10    // 10 x 6 min = one game-hour

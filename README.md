@@ -42,7 +42,7 @@ see is not "weak", it is unknown, and the AI will not invade what it cannot
 assess. Shooting down spy planes and keeping your army out of radar coverage
 are real defensive measures.
 
-**Stalemates end in a ceasefire.** A war that has run two game-hours with
+**Stalemates end in a ceasefire.** A war that has run 72 game-minutes with
 neither side taking ground is wound down: the faction asks the engine for a
 ceasefire, stops prosecuting the war, re-leashes the enemy and holds the
 peace cooldown for a game-hour so nothing re-declares on the spot.
