@@ -422,12 +422,18 @@ BLOCK Protect(int FactionID, string Reason)
   end
 END
 
-// Wind a war down from our side: stop prosecuting it, re-leash, and put the
-// faction under the peace cooldown so nothing re-declares immediately.  The
-// engine's relation stays hostile until a ceasefire is agreed - offering one
-// from a script needs the PEACE statement, whose syntax is not yet verified
-// (see diagnostics/probe4_peace_syntax.ps1).
+// Wind a war down from our side: ask the engine for a ceasefire, stop
+// prosecuting the war, re-leash, and hold the peace cooldown so nothing
+// re-declares immediately.
+//
+// `CeaseFire With "X"` is the verified statement (probe 4): the grammar is
+// strict - `Peace "X"`, `Peace Treaty "X"`, `Peace With "X"` and any
+// trailing duration are all parse errors, while `CeaseFire With "X"` and
+// `Peace Treaty With "X"` both work and both produce a ceasefire of the
+// game's default length.
 BLOCK StandDownFrom(int FactionID, string Reason)
+  def string TargetName = FACTION_NAME(FactionID)
+  CeaseFire With TargetName
   Protect(FactionID, Reason)
 END
 

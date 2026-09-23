@@ -42,12 +42,10 @@ see is not "weak", it is unknown, and the AI will not invade what it cannot
 assess. Shooting down spy planes and keeping your army out of radar coverage
 are real defensive measures.
 
-**Stalemates are wound down.** A war that has run two game-hours with
-neither side taking ground is abandoned: the faction stops prosecuting it,
-re-leashes the enemy and enters the peace cooldown. (Offering a formal
-ceasefire from a script needs a statement whose syntax is not yet verified —
-see `diagnostics/probe4_peace_syntax.ps1` — so for now the engine's relation
-stays hostile until one side sues for peace on its own.)
+**Stalemates end in a ceasefire.** A war that has run two game-hours with
+neither side taking ground is wound down: the faction asks the engine for a
+ceasefire, stops prosecuting the war, re-leashes the enemy and holds the
+peace cooldown for a game-hour so nothing re-declares on the spot.
 
 **Peace is respected.** A war the engine ends — ceasefire, peace treaty,
 surrender — stays ended: the faction is stood down against, re-leashed and
