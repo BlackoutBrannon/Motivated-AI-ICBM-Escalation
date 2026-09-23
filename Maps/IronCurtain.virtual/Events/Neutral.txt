@@ -198,6 +198,10 @@ def int AIRZONE_KM          = 400    // "our zone" = over our territory, or with
                                      // our radars / airbases WHILE NOT OVER THEIR OWN - loitering just off
                                      // our coast provokes; sitting on their own airfield near the border
                                      // does not, however well we can see it
+def int LOSS_POINTS         = 70     // one of our units destroyed.  Heavy enough that a faction already
+                                     // aggrieved, rivalrous or eyeing a weak border tips into war at once,
+                                     // but a single stray kill between otherwise calm neighbours does not.
+def int LOSS_WAR_LOSSES     = 3      // ...and this many losses to them means war regardless of the score
 def int INCURSION_POINTS    = 40     // their ground units inside our borders without a shot fired.
                                      // NOT an immediate war: Region_Invaded fires on mere presence, so
                                      // auto-deploy across a disputed border (India/Pakistan at 0:06) would
@@ -241,6 +245,7 @@ def set RivalStandoff     // parallel: consecutive evals their score sat within 
 def set RivalWarSince     // parallel: EvalCount when our war with them began (-1 = not at war)
 def set RivalWarMyRegions // parallel: our region count when that war began
 def set RivalWarTheirRegions // parallel: their region count when that war began
+def set RivalLosses       // parallel: units of ours they have destroyed
 def set Released          // ids we have taken off the leash
 def set TotalWar          // subset of Released opened with AttackFaction
 def set Protected         // ids under peace cooldown (parallel to ProtectedUntil)
@@ -579,11 +584,36 @@ BLOCK OnIncursionBy(string AttackerName)
   end
 END
 
-// Something of ours was destroyed: hit back now.
+// Something of ours was destroyed.  A heavy grievance rather than an
+// automatic war: one stray kill between calm neighbours is an incident to be
+// answered diplomatically, but a faction that already has a grudge, a rivalry
+// or a weak border in view will tip over at once.  Sustained losses
+// (LOSS_WAR_LOSSES) mean war whatever the score says.
 BLOCK OnAttackedBy(string AttackerName)
   def int A = FACTION_ID(AttackerName)
   if (A!=SelfID AND not (A in Released))
-    Retaliate(A, "attacked us")
+    def int idx = IndexOfRival(A)
+    def int Total = 0
+    if (idx>=0)
+      def set Rebuilt
+      def int i = 0
+      def int n = SIZE_OF(RivalLosses)
+      while (i<n)
+        def int V = GET_ELEMENT(RivalLosses, i)
+        if (i==idx)
+          V = V + 1
+          Total = V
+        end
+        Rebuilt+=V
+        i++
+      end
+      RivalLosses = Rebuilt
+    end
+    if (Total>=LOSS_WAR_LOSSES)
+      Retaliate(A, "they have destroyed " + Total + " of our units")
+    else
+      AddGrievance(A, LOSS_POINTS)
+    end
   end
 END
 
@@ -644,6 +674,7 @@ BLOCK DiscoverRivals()
           RivalWarSince+=(0 - 1)
           RivalWarMyRegions+=0
           RivalWarTheirRegions+=0
+          RivalLosses+=0
           Added++
 
           Leash(O)

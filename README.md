@@ -18,7 +18,7 @@ faction* when an opportunity and a reason coincide.
 | Ally at war | +45 | They are fighting one of our permanent allies |
 | Occupier | +50 | They hold regions that were ours or an ally's |
 | Old rivalry | +15 | The map lists them as a default enemy |
-| Grievance | up to +120, decays | Frontier reinforcements against us, their aircraft in our air-defence zone, shots fired at us that destroy nothing, their units inside our borders |
+| Grievance | up to +120, decays | Units of ours destroyed (+70), their units inside our borders (+40), shots that destroy nothing (+20), aircraft in our air-defence zone, frontier reinforcements |
 | Stronger | −70 / −130 | Their visible power clearly outweighs ours |
 | Blind | −40 | We can see fewer than half their divisions |
 | Committed | −40 × n(n+1)/2 | We already have n wars of our own: −40 for a second front, −120 for a third, −240 for a fourth |
@@ -53,13 +53,15 @@ protected from any scored declaration for a game-hour. A declaration the
 engine refuses (for example under a treaty) is withdrawn the same way. Only a
 real attack cuts through the cooldown.
 
-**Incidents are not wars.** A shot that destroys nothing — an interceptor on
-auto-engage, a patrol firing at a stray — and an uninvited border crossing
-are logged as grievances and accumulate; enough of them earns a punitive war
-through the normal scoring. **Losing a unit is answered immediately**, with a
-rolling series of limited operations — proportionate, and never an invasion
-by itself. A war the engine brings a faction into on
-behalf of a permanent ally is fought in full.
+**Incidents are not wars — but they are a powder keg.** Everything short of a
+sustained attack is a grievance that accumulates and decays: a shot that
+destroys nothing (+20), an uninvited border crossing (+40), a unit of ours
+destroyed (+70). A faction with nothing else against you shrugs off a stray
+kill; one that already holds a grudge, a rivalry or a weak border in view
+tips into war on the spot. **Three losses to the same faction means war
+regardless of the score.** Wars entered this way are punitive: rolling
+limited strikes, never an invasion by themselves. A war the engine brings a
+faction into on behalf of a permanent ally is fought in full.
 
 **Nuclear weapons are a last resort.** Every AI starts with all nuclear
 categories withheld and releases them tier by tier, never taking them back:

@@ -25,7 +25,9 @@ unless marked otherwise.
 
 **Not yet tested in play** (all added after the last long run)
 
-- Graduated incidents (a shot that destroys nothing is a grievance)
+- Graduated response: every provocation short of sustained attack is a
+  grievance (shot +20, incursion +40, unit destroyed +70); three losses to
+  one faction means war regardless of score
 - Aircraft-at-home no longer provoke
 - EMP as a tactical weapon
 - Territorial loss having to be *held* for three evaluations
