@@ -20,19 +20,37 @@ unless marked otherwise.
 - Nuclear doctrine: tactical and strategic tiers, in-kind response, AI
   actually fires tactical weapons once permitted
 - Ceasefire/treaty respect with a one-hour cooldown
-- Stalemate stand-down issuing a real `CeaseFire With`
+- **Stalemate stand-down, verified end to end** (run of 2026-09-23, eval 43):
+  Soviet Union and NATO both stood down against Soviet Allies, Soviet Allies
+  reciprocated on its own eval 43, and the engine ended both wars. The peace
+  survived the engine ceasefire lapsing 10 minutes later and held for at
+  least two further evaluations.
+- Territorial loss having to be *held* for three evaluations — NATO, the
+  Soviet Union and Soviet Allies each reached `RegionsLostStreak 3` and
+  authorised strategic weapons off real conquest, not contested border ticks
+- Aircraft-at-home no longer provoke (no phantom war in a 4.5-hour run)
+- A border crossing as a grievance rather than an attack
 - Survives save/load; staggered evaluations keep the frame cost flat
 
-**Not yet tested in play** (all added after the last long run)
+**Not yet tested in play** (added after the 2026-09-23 run)
 
 - Graduated response: every provocation short of sustained attack is a
   grievance (shot +20, incursion +40, unit destroyed +70); three losses to
   one faction means war regardless of score
-- Aircraft-at-home no longer provoke
-- EMP as a tactical weapon
-- Territorial loss having to be *held* for three evaluations (broad attrition
-  only — a vital region about to fall authorises strategic immediately)
+- EMP as a tactical weapon (the tier worked; no EMP was observed fired)
+- A vital region about to fall authorising strategic **immediately**, gated on
+  invaders ≥ defenders rather than a hold timer
+- No duplicates in `Released` / `TotalWar`
+- A peace cooldown that actually lasts `PEACE_COOLDOWN_EVALS`
 - The `ON Destroyed anything ATTACKER "X"` hook form
+
+**Watch on the next run — the last two interact.** The stalemate peace held
+because `Committed` was charging the Soviet Union −840 and NATO −600 for a
+fifth front, and those counts were *inflated* by the duplicate bug (6 and 5
+entries for 4 wars each). Fixing duplicates lowers `Committed` to −400, while
+fixing the cooldown adds real protection through `EvalCount + 10`. The
+cooldown should now do deliberately what the over-count was doing by
+accident, but confirm a stalemate still holds before calling it settled.
 
 ## Engine facts, all learned the hard way
 
@@ -116,7 +134,11 @@ unless marked otherwise.
   does not reach it and there is no info panel for hostile units, so faction
   ownership cannot be surfaced as text. (Hence the optional palette instead.)
 - Saves are plain text: `SAVES/<name>/world.txt`. Line 6 `Time <ticks>`,
-  ticks/60 = displayed seconds. Each `Player` block carries `Relations`
+  ticks/60 = displayed seconds — **floor it**; PowerShell's `[int]` cast
+  rounds to nearest and silently reported every game clock an hour high.
+  The save *folder* mtime is stale, so find the newest run by the inner
+  `world.txt`, and note the game reuses `SAVE1` etc. regardless of the name
+  typed in the UI. Each `Player` block carries `Relations`
   (0 war, 1 neutral, 2 partner, 3 permanent ally), `CeaseFire` expiry ticks,
   the AI bitscales, and — invaluably — the script's own variables under
   `VariableArray`. That is how almost every bug here was diagnosed.
@@ -141,6 +163,16 @@ faction a different candidate behaviour in a throwaway game.
    sustained relative growth barely happens. May need a longer horizon.
 5. One unexplained crash (~1:00 game time, no message in `Fatal.txt`),
    seen once, never reproduced.
+6. **A late game becomes a free-for-all.** By 4:30 in the 2026-09-23 run all
+   ten factions were at war, 26 pairs, six at strategic. Each war was
+   individually well-motivated — the leash, the scoring and the nuclear tiers
+   all behaved — but wars accumulate faster than the stalemate drains them,
+   because a stand-down needs 20 evaluations of *no ground changing hands*
+   and the Warsaw Pact (6 → 18 regions) and China (10 → 22) kept
+   disqualifying pairs by winning. If the intent is that a map should settle
+   rather than saturate, the drain needs to be faster than the fill: a
+   shorter `STALEMATE_EVALS`, or a stand-down path for a war that is being
+   *lost* rather than only one that is going nowhere.
 
 ## Release checklist
 
