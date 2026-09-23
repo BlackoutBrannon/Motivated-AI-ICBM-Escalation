@@ -196,6 +196,9 @@ def int OVERFLIGHT_POINTS   = 8      // per visible rival aircraft in our air-de
 def int OVERFLIGHT_MAX      = 32     // cap per eval
 def int AIRZONE_KM          = 400    // "our zone" = over our territory OR within this distance of one of
                                      // our radars / airbases (loitering just off the coast counts)
+def int INCIDENT_POINTS     = 20     // a shot fired at us that destroys nothing: an incident, not a war.
+                                     // Auto-engage and stray patrols cause these constantly, so they
+                                     // accumulate as grievance instead of opening a war on the spot.
 def int GRIEVANCE_DECAY     = 10     // points lost per QUIET evaluation (grudges don't fade while provoked)
 def int GRIEVANCE_MAX       = 120
 def int GRIEVANCE_SEEN_THRESHOLD = 50 // above this, the blind penalty is halved: we may not see
@@ -527,6 +530,17 @@ END
 // engine's own retaliation logic decide the response.  Called from hooks with
 // LITERAL faction names stamped by build.ps1 (a variable argument would be
 // re-evaluated when the event fires).
+// A shot that destroyed nothing: log it as a grievance and let it accumulate.
+// Repeated incidents will eventually earn a punitive war through the normal
+// scoring; a single auto-engage will not.
+BLOCK OnIncidentBy(string AttackerName)
+  def int A = FACTION_ID(AttackerName)
+  if (A!=SelfID AND not (A in Released))
+    AddGrievance(A, INCIDENT_POINTS)
+  end
+END
+
+// Something of ours was destroyed, or our territory invaded: hit back now.
 BLOCK OnAttackedBy(string AttackerName)
   def int A = FACTION_ID(AttackerName)
   if (A!=SelfID AND not (A in Released))
@@ -1356,15 +1370,33 @@ FOR AI
   SetWarMotives()
 
   // release the leash on anyone who attacks us
-  ON Attacked anything ATTACKER "United States" OnAttackedBy("United States")
-  ON Attacked anything ATTACKER "Soviet Union" OnAttackedBy("Soviet Union")
-  ON Attacked anything ATTACKER "NATO" OnAttackedBy("NATO")
-  ON Attacked anything ATTACKER "Warsaw Pact" OnAttackedBy("Warsaw Pact")
-  ON Attacked anything ATTACKER "American Allies" OnAttackedBy("American Allies")
-  ON Attacked anything ATTACKER "Soviet Allies" OnAttackedBy("Soviet Allies")
-  ON Attacked anything ATTACKER "China" OnAttackedBy("China")
-  ON Attacked anything ATTACKER "India" OnAttackedBy("India")
-  ON Attacked anything ATTACKER "Pakistan" OnAttackedBy("Pakistan")
+  ON Attacked anything ATTACKER "United States" OnIncidentBy("United States")
+  ON Destroyed anything ATTACKER "United States" OnAttackedBy("United States")
+  ON Region_Invaded ANY OF ME BY "United States" OnAttackedBy("United States")
+  ON Attacked anything ATTACKER "Soviet Union" OnIncidentBy("Soviet Union")
+  ON Destroyed anything ATTACKER "Soviet Union" OnAttackedBy("Soviet Union")
+  ON Region_Invaded ANY OF ME BY "Soviet Union" OnAttackedBy("Soviet Union")
+  ON Attacked anything ATTACKER "NATO" OnIncidentBy("NATO")
+  ON Destroyed anything ATTACKER "NATO" OnAttackedBy("NATO")
+  ON Region_Invaded ANY OF ME BY "NATO" OnAttackedBy("NATO")
+  ON Attacked anything ATTACKER "Warsaw Pact" OnIncidentBy("Warsaw Pact")
+  ON Destroyed anything ATTACKER "Warsaw Pact" OnAttackedBy("Warsaw Pact")
+  ON Region_Invaded ANY OF ME BY "Warsaw Pact" OnAttackedBy("Warsaw Pact")
+  ON Attacked anything ATTACKER "American Allies" OnIncidentBy("American Allies")
+  ON Destroyed anything ATTACKER "American Allies" OnAttackedBy("American Allies")
+  ON Region_Invaded ANY OF ME BY "American Allies" OnAttackedBy("American Allies")
+  ON Attacked anything ATTACKER "Soviet Allies" OnIncidentBy("Soviet Allies")
+  ON Destroyed anything ATTACKER "Soviet Allies" OnAttackedBy("Soviet Allies")
+  ON Region_Invaded ANY OF ME BY "Soviet Allies" OnAttackedBy("Soviet Allies")
+  ON Attacked anything ATTACKER "China" OnIncidentBy("China")
+  ON Destroyed anything ATTACKER "China" OnAttackedBy("China")
+  ON Region_Invaded ANY OF ME BY "China" OnAttackedBy("China")
+  ON Attacked anything ATTACKER "India" OnIncidentBy("India")
+  ON Destroyed anything ATTACKER "India" OnAttackedBy("India")
+  ON Region_Invaded ANY OF ME BY "India" OnAttackedBy("India")
+  ON Attacked anything ATTACKER "Pakistan" OnIncidentBy("Pakistan")
+  ON Destroyed anything ATTACKER "Pakistan" OnAttackedBy("Pakistan")
+  ON Region_Invaded ANY OF ME BY "Pakistan" OnAttackedBy("Pakistan")
 
 FOR BOTH
 

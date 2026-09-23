@@ -18,7 +18,7 @@ faction* when an opportunity and a reason coincide.
 | Ally at war | +45 | They are fighting one of our permanent allies |
 | Occupier | +50 | They hold regions that were ours or an ally's |
 | Old rivalry | +15 | The map lists them as a default enemy |
-| Grievance | up to +120, decays | Frontier reinforcements against us, their aircraft over our territory |
+| Grievance | up to +120, decays | Frontier reinforcements against us, their aircraft in our air-defence zone, shots fired at us that destroy nothing |
 | Stronger | −70 / −130 | Their visible power clearly outweighs ours |
 | Blind | −40 | We can see fewer than half their divisions |
 | Committed | −40 × n(n+1)/2 | We already have n wars of our own: −40 for a second front, −120 for a third, −240 for a fourth |
@@ -53,8 +53,11 @@ protected from any scored declaration for a game-hour. A declaration the
 engine refuses (for example under a treaty) is withdrawn the same way. Only a
 real attack cuts through the cooldown.
 
-**Being attacked is answered immediately.** Any faction that is attacked
-hits back at once with a rolling series of limited operations — proportionate,
+**Incidents are not wars.** A shot that destroys nothing — an interceptor
+on auto-engage, a patrol firing at a stray — is logged as a grievance and
+accumulates; enough of them eventually earn a punitive war through the normal
+scoring. **Losing a unit or having territory invaded is answered
+immediately**, with a rolling series of limited operations — proportionate,
 and never an invasion by itself. A war the engine brings a faction into on
 behalf of a permanent ally is fought in full.
 

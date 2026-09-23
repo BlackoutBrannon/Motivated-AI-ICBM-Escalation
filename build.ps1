@@ -111,8 +111,12 @@ foreach ($map in $maps.Keys) {
              "def set ALL_FACTIONS = {" + (($maps[$map] | ForEach-Object { '"' + $_ + '"' }) -join ', ') + "}`n" +
              "def int EVAL_OFFSET_SEC = " + (40 * [array]::IndexOf($maps[$map], $faction)) + "  // staggers evaluations across factions`n`n"
     # attack hooks with literal names (one per other faction)
+    # a shot that destroys nothing is an incident (grievance); losing a unit
+    # or having territory invaded is an attack (immediate retaliation)
     $hooks = ($maps[$map] | Where-Object { $_ -ne $faction } | ForEach-Object {
-      "  ON Attacked anything ATTACKER `"$_`" OnAttackedBy(`"$_`")" }) -join "`n"
+      "  ON Attacked anything ATTACKER `"$_`" OnIncidentBy(`"$_`")`n" +
+      "  ON Destroyed anything ATTACKER `"$_`" OnAttackedBy(`"$_`")`n" +
+      "  ON Region_Invaded ANY OF ME BY `"$_`" OnAttackedBy(`"$_`")" }) -join "`n"
     $body  = $footer -replace '  SetWarMotives\(\)', ("  SetWarMotives()`n`n  // release the leash on anyone who attacks us`n" + $hooks)
     $path = Join-Path $dir "$faction.txt"
     [IO.File]::WriteAllText($path, ($stamp + $src.TrimEnd() + $body), (New-Object Text.UTF8Encoding($false)))
