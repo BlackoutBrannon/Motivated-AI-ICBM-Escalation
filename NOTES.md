@@ -90,6 +90,17 @@ unless marked otherwise.
 - Event-handler arguments are evaluated **when the event fires**, not when it
   is registered — never pass a loop variable. `build.ps1` stamps literal
   faction names into the hooks for this reason.
+- `set += (a + b)` appends **both operands as separate elements**; it does not
+  evaluate the expression. Caught as `ProtectedUntil {43, 10}` where 53 was
+  meant, which desynced it from the `Protected` set it is indexed against.
+  Compile-time constants like `(0 - 1)` are folded and do yield one element.
+  Always compute into an `int` before appending.
+- A stalemate `CeaseFire With` is a **request, not a result**: the war only
+  ends once both sides issue one. Evaluations are staggered 40s per faction,
+  so the second half lands an evaluation later and a save taken between the
+  two looks like the statement did nothing. The engine ceasefire that results
+  is short — about 10 game-minutes — so `PEACE_COOLDOWN_EVALS` (60 minutes)
+  is what actually keeps the peace afterwards.
 - `REGION_OWNER` reports the occupier while a region is merely *contested*,
   so a snapshot counts battlefields as conquests.
 - `Region_Invaded` fires on mere unit presence, not on an actual assault —
