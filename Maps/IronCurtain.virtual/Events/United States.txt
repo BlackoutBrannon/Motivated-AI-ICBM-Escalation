@@ -60,9 +60,16 @@ def int EVAL_OFFSET_SEC = 0  // staggers evaluations across factions
 // ---------------------------------------------------------------- tunables --
 
 def int EVAL_PERIOD_MIN     = 6      // game minutes between evaluations
-def int WARMUP_MIN          = 30     // no SCORED declarations before this many game minutes: units are still
-                                     // auto-deploying (~15 min) and the engine's peace timer (default 10 min)
-                                     // should be honoured.  Retaliation for being attacked is never delayed.
+def int WARMUP_MIN          = 10     // no SCORED declarations before this many game minutes.  This only has to
+                                     // cover the opening auto-deploy: Region_Invaded fires on mere PRESENCE, so
+                                     // troops settling across a disputed border hand out +40 incursion
+                                     // grievances that a thin border (+60) can turn into a war at 0:06.
+                                     // Beyond that the scoring already prevents an opening war on its own -
+                                     // with no grievance, distraction, occupier or ally at war yet available,
+                                     // the ceiling is landgrab 60 + rivalry 15 + fudge 20 = 95.
+                                     // It was 30 when the motive layer did not exist and blunt delay was all
+                                     // there was; 30 mostly meant an AI would absorb a sustained attack from a
+                                     // human without ever declaring.  Retaliation is never delayed by it.
 def int WAR_THRESHOLD       = 100    // score needed to release the leash
 def int RANDOM_FUDGE        = 20     // 0..N random points added each eval (no clockwork)
 

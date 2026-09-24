@@ -93,7 +93,10 @@ maroon, orange-red).
 Also included:
 
 - higher war-readiness thresholds on every difficulty
-- a 30-minute warm-up at game start during which no scored war is declared
+- a 10-minute warm-up at game start during which no scored war is declared,
+  just long enough for the opening auto-deploy to settle (the scoring itself
+  prevents an opening war: with no grievance or distraction yet available the
+  ceiling is 95, under the threshold)
 - (optional, off by default) a stricter home garrison before an AI can
   invade — `$StricterGarrison` in `build.ps1`
 
