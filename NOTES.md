@@ -47,15 +47,31 @@ which also settled the four fixes that had no evidence behind them:
 - **The `ON Destroyed anything ATTACKER "X"` hook** registers and attributes
   correctly to the faction, human players included
 
+- **A vital region about to fall authorises strategic immediately**
+  (`1ce6f1c`). Forced on 2026-09-24 by playing India and invading Pakistan,
+  whose single region is 100% of its economy:
+
+      Pakistan authorises TACTICAL nuclear weapons: holding Pakistan
+        (11 invaders v 0 defenders)
+      Pakistan authorises STRATEGIC nuclear weapons: existential:
+        may lose Pakistan (11 invaders v 0 defenders)
+
+  Both tiers in one pass, on the evaluation *after* the war opened, with
+  `RegionsLostStreak = 0` — so the attrition path contributed nothing and
+  this was the instant path alone. Note it needs an actual **invasion**:
+  the check counts enemy ground units in the region, and a faction fighting
+  four limited wars never sees one. In an earlier game Pakistan was at war
+  with four factions for an hour and none of them invaded.
+
 **Not yet tested in play**
 
 - EMP as a tactical weapon (the tier worked; no EMP was observed fired)
-- A vital region about to fall authorising strategic **immediately**, gated on
-  invaders ≥ defenders rather than a hold timer. This map can only test it on
-  Pakistan, whose one region is 100% of its economy — and only while somebody
-  is invading it in `TotalWar` mode. Pakistan spent a whole game at war with
-  four factions without one of them mounting an invasion, so the path needs
-  to be forced: play India and invade.
+- The **negative** half of the vital-region test: invaders present but
+  *fewer* than defenders, which must NOT authorise. Only the positive half
+  was run. Worth knowing that with the ratio at 100% a lone invader in an
+  *undefended* vital region does fire, since `DefSafe` clamps to 1 — for a
+  one-region nation that reads as correct, but it is the edge to check if
+  the trigger ever feels hasty.
 
 **`LOSS_WAR_LOSSES` is a long stop, not a normal path.** The "three losses
 means war regardless of score" backstop has never fired and in practice
@@ -207,7 +223,11 @@ faction a different candidate behaviour in a throwaway game.
 
 - [x] `DEBUG_MESSAGES` defaults to 1 (events only)
 - [x] `$ColorblindPalette` defaults to `$false`
-- [ ] One clean long run on the current build with no unexplained wars
+- [x] One clean long run on the current build with no unexplained wars
+      (2026-09-24, four hours: standoffs into wars, a stalemate ceasefire,
+      tactical and strategic both earned, no cascade, four factions never
+      dragged in)
+- [x] Every behavioural change verified in play
 - [ ] Decide: ship as Iron Curtain only, or add the Earth map first
 - [ ] Decide the published name (folder says "Less Aggressive AI", the
       project is "Motivated AI")
