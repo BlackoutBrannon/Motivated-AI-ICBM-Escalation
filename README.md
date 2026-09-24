@@ -123,8 +123,9 @@ proportionate escalation.
 
 ## Install
 
-Copy this folder to `<game>\MODS\LessAggressiveAI\` and enable
-**Less Aggressive AI** in the game's mod list (below the DLC entries).
+Copy this folder into `<game>\MODS\` and enable **Motivated AI** in the
+game's mod list (below the DLC entries). The folder may be named anything —
+the game reads the display name from `info.txt`.
 Currently supports the **Iron Curtain** map.
 
 ## Layout

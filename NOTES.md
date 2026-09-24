@@ -6,7 +6,7 @@ engine actually allows, and what is left to do.
 
 ## Where things stand
 
-Version 2.4.0 + unreleased fixes. Everything below has been verified in play
+Version 2.5.0, the first release candidate. Everything below has been verified in play
 unless marked otherwise.
 
 **Working and tested**
@@ -228,7 +228,14 @@ faction a different candidate behaviour in a throwaway game.
       tactical and strategic both earned, no cascade, four factions never
       dragged in)
 - [x] Every behavioural change verified in play
-- [ ] Decide: ship as Iron Curtain only, or add the Earth map first
-- [ ] Decide the published name (folder says "Less Aggressive AI", the
-      project is "Motivated AI")
+- [x] **Iron Curtain only** for v1. Earth support is built and works
+      (`$IncludeEarthMap` in `build.ps1`) but the map has never been played,
+      and an untested map in a first release is a support burden for no gain.
+- [x] **Published as "Motivated AI"** (`info.txt`, which is what the game's
+      mod list and the Workshop page read). The repo folder is still
+      `LessAggressiveAI`; that name is now cosmetic and can be changed
+      whenever nothing is running out of it.
 - [ ] Workshop upload needs a preview image and tags
+- [ ] Say plainly on the Workshop page that co-op needs the mod on **every**
+      client and is lightly tested — better to set the expectation than to
+      field the bug report
