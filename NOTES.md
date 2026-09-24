@@ -153,11 +153,18 @@ faction a different candidate behaviour in a throwaway game.
 
 ## Backlog
 
-1. **Multiplayer.** Untested, and `AllowEventsInMultiplayer` is a config
-   setting whose default is unknown — if events are off in MP the mod does
-   nothing there. This matters: co-op is a stated use case.
-2. **Earth map.** Only Iron Curtain is stamped. Adding it is ten faction
-   names in `build.ps1` plus checking its `DefaultEnemy` list parses.
+1. **Multiplayer.** `AllowEventsInMultiplayer` **defaults to `true`** (line 87
+   of `Documents\My Games\ICBM-Escalation\ICBM.CFG`, unedited), so events do
+   run in MP and the mod should work. Still unverified in an actual session:
+   whether every player needs the mod installed (almost certainly yes, or the
+   clients desync), and whether the host's copy of the setting governs.
+2. **Earth map.** Plumbing is done — set `$IncludeEarthMap = $true` in
+   `build.ps1` and all ten faction files generate, rivalries and all. Left
+   **off** because it has never been played. Two traps it already handles:
+   the map folder `EarthRRUltraV3.virtual` is described by `EarthRRUltra.txt`
+   (not `EarthRRUltraV3.txt`), and `Central/South Asia` writes to
+   `Central-South Asia.txt` while keeping the slashed name inside the script.
+   The colourblind palette is Iron Curtain only; Earth keeps vanilla colours.
 3. **Occupier tuning** — the motive exists but has never fired in a test.
 4. **`outpaced`** has never fired either; AI build rates are so slow that
    sustained relative growth barely happens. May need a longer horizon.

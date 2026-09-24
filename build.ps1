@@ -13,15 +13,41 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $src  = Get-Content (Join-Path $root 'src\WarMotives.txt') -Raw
 
-# map folder (under Maps\) -> AI faction event files to generate
+# --- optional Earth map support (OFF by default: UNTESTED in play) ----------
+# The plumbing is complete and the generated files parse, but no long run has
+# ever been played on this map.  Flip to $true to test it; leave it $false for
+# a release until it has had the same shakedown Iron Curtain got.
+$IncludeEarthMap = $false
+
+# map folder (under Maps\) -> the map's own .txt and the AI faction event files
+# to generate.  The .txt is named explicitly because it does NOT always follow
+# from the folder: EarthRRUltraV3.virtual is described by EarthRRUltra.txt.
 $maps = @{
   # Every AI-capable faction, Neutral included: any faction without the script
   # is unleashed vanilla AI and becomes the map's war outlet.
-  'IronCurtain.virtual' = @(
-    'United States', 'Soviet Union', 'NATO', 'Warsaw Pact',
-    'American Allies', 'Soviet Allies', 'China', 'India', 'Pakistan', 'Neutral'
-  )
+  'IronCurtain.virtual' = @{
+    File     = 'IronCurtain.txt'
+    Factions = @(
+      'United States', 'Soviet Union', 'NATO', 'Warsaw Pact',
+      'American Allies', 'Soviet Allies', 'China', 'India', 'Pakistan', 'Neutral'
+    )
+  }
 }
+if ($IncludeEarthMap) {
+  $maps['EarthRRUltraV3.virtual'] = @{
+    File     = 'EarthRRUltra.txt'
+    Factions = @(
+      'North America', 'Central America', 'South America', 'Europe', 'Russia',
+      'East Asia', 'Asia Pacific', 'Middle East-North Africa',
+      'Central/South Asia', 'Sub-Saharan Africa'
+    )
+  }
+}
+
+# A faction's event file is named after it, except that the engine writes '/'
+# as '-': "Central/South Asia" lives in "Central-South Asia.txt".  The name
+# inside the script stays the real one - that is what FACTION_ID expects.
+function Get-EventFileName([string]$faction) { ($faction -replace '/', '-') + '.txt' }
 
 $footer = @"
 
@@ -70,21 +96,32 @@ if ($StricterGarrison) {
 # engine).  Built for a weak red cone (protan): factions are separated by
 # LIGHTNESS and the blue-yellow axis, no purples, reds kept light.
 $ColorblindPalette = $false
-$palette = @{
-  'United States'='00A0FF'; 'Soviet Union'='FF6040'; 'NATO'='FFFFFF'; 'Warsaw Pact'='3A1E00'
-  'American Allies'='00E0A0'; 'Soviet Allies'='8B0000'; 'China'='FFE000'; 'India'='FFB000'
-  'Pakistan'='3C5A14'; 'Neutral'='909090'
+# Per map: a map with no palette here keeps its vanilla colours even when the
+# switch is on, rather than being rewritten with another map's faction names.
+$palettes = @{
+  'IronCurtain.virtual' = @{
+    'United States'='00A0FF'; 'Soviet Union'='FF6040'; 'NATO'='FFFFFF'; 'Warsaw Pact'='3A1E00'
+    'American Allies'='00E0A0'; 'Soviet Allies'='8B0000'; 'China'='FFE000'; 'India'='FFB000'
+    'Pakistan'='3C5A14'; 'Neutral'='909090'
+  }
 }
 foreach ($map in $maps.Keys) {
-  $mapFile = ($map -replace '\.virtual$', '.txt')
+  $mapFile = $maps[$map].File
   $out = Join-Path $root "Maps\$mapFile"
-  if ($ColorblindPalette) {
+  if ($ColorblindPalette -and $palettes.ContainsKey($map)) {
+    $palette = $palettes[$map]
     $txt = Get-Content (Join-Path $gameRoot "Maps\$mapFile") -Raw
+    $nRecoloured = 0
     foreach ($f in $palette.Keys) {
-      $txt = $txt -replace ('(?m)^(\s*Player "' + [regex]::Escape($f) + '" Color ")[0-9A-Fa-f]+(")'), ('${1}' + $palette[$f] + '${2}')
+      $pat = '(?m)^(\s*Player "' + [regex]::Escape($f) + '" Color ")[0-9A-Fa-f]+(")'
+      if ($txt -match $pat) { $nRecoloured++ }
+      $txt = $txt -replace $pat, ('${1}' + $palette[$f] + '${2}')
+    }
+    if ($nRecoloured -ne $palette.Count) {
+      throw "palette for $map recoloured $nRecoloured of $($palette.Count) factions - faction names or the Color format changed"
     }
     [IO.File]::WriteAllText($out, $txt, (New-Object Text.UTF8Encoding($false)))
-    Write-Host "Generated Maps\$mapFile with the colourblind palette."
+    Write-Host "Generated Maps\$mapFile with the colourblind palette ($nRecoloured factions)."
   } else {
     Remove-Item $out -ErrorAction SilentlyContinue
   }
@@ -138,7 +175,15 @@ $count = 0
 foreach ($map in $maps.Keys) {
   # the map's DefaultEnemy pairs -> per-faction MAP_RIVALS set (the "old
   # rivalry" motive; GET_ENEMIES only reports actual wars)
-  $mapTxt   = Get-Content (Join-Path $gameRoot ("Maps\" + ($map -replace '\.virtual$', '.txt'))) -Raw
+  $factions = $maps[$map].Factions
+  $mapTxt   = Get-Content (Join-Path $gameRoot ("Maps\" + $maps[$map].File)) -Raw
+
+  # every faction we stamp must actually exist on the map, or FACTION_ID
+  # returns nothing and the whole scoring loop silently does nothing
+  $declared = [regex]::Matches($mapTxt, '(?m)^\s*Player\s+"([^"]+)"') | ForEach-Object { $_.Groups[1].Value }
+  $missing  = $factions | Where-Object { $declared -notcontains $_ }
+  if ($missing) { throw "$map : not declared in $($maps[$map].File): $($missing -join ', ')" }
+
   $rivalsOf = @{}
   foreach ($m in [regex]::Matches($mapTxt, '(?m)^\s*DefaultEnemy\s+"([^"]+)"\s+"([^"]+)"')) {
     if (-not $rivalsOf.ContainsKey($m.Groups[1].Value)) { $rivalsOf[$m.Groups[1].Value] = @() }
@@ -147,25 +192,26 @@ foreach ($map in $maps.Keys) {
 
   $dir = Join-Path $root "Maps\$map\Events"
   New-Item -ItemType Directory -Force $dir | Out-Null
-  foreach ($faction in $maps[$map]) {
+  foreach ($faction in $factions) {
     $list = @('""')
     if ($rivalsOf.ContainsKey($faction)) { $list = $rivalsOf[$faction] | ForEach-Object { '"' + $_ + '"' } }
     $stamp = "// generated by build.ps1 for faction `"$faction`" - edit src\WarMotives.txt, not this file`n" +
              "def set MAP_RIVALS = {" + ($list -join ', ') + "}`n" +
-             "def set ALL_FACTIONS = {" + (($maps[$map] | ForEach-Object { '"' + $_ + '"' }) -join ', ') + "}`n" +
-             "def int EVAL_OFFSET_SEC = " + (40 * [array]::IndexOf($maps[$map], $faction)) + "  // staggers evaluations across factions`n`n"
+             "def set ALL_FACTIONS = {" + (($factions | ForEach-Object { '"' + $_ + '"' }) -join ', ') + "}`n" +
+             "def int EVAL_OFFSET_SEC = " + (40 * [array]::IndexOf($factions, $faction)) + "  // staggers evaluations across factions`n`n"
     # attack hooks with literal names (one per other faction)
     # only a destroyed unit is an immediate attack; a shot that hits nothing
     # and an uninvited border crossing are grievances (Region_Invaded fires on
     # mere presence, so it cannot mean war on its own)
-    $hooks = ($maps[$map] | Where-Object { $_ -ne $faction } | ForEach-Object {
+    $hooks = ($factions | Where-Object { $_ -ne $faction } | ForEach-Object {
       "  ON Attacked anything ATTACKER `"$_`" OnIncidentBy(`"$_`")`n" +
       "  ON Destroyed anything ATTACKER `"$_`" OnAttackedBy(`"$_`")`n" +
       "  ON Region_Invaded ANY OF ME BY `"$_`" OnIncursionBy(`"$_`")" }) -join "`n"
     $body  = $footer -replace '  SetWarMotives\(\)', ("  SetWarMotives()`n`n  // release the leash on anyone who attacks us`n" + $hooks)
-    $path = Join-Path $dir "$faction.txt"
+    $path = Join-Path $dir (Get-EventFileName $faction)
     [IO.File]::WriteAllText($path, ($stamp + $src.TrimEnd() + $body), (New-Object Text.UTF8Encoding($false)))
     $count++
   }
+  Write-Host "  $map : $($factions.Count) factions from $($maps[$map].File)"
 }
 Write-Host "Generated $count faction event files."
