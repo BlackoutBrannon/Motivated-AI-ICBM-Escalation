@@ -32,25 +32,43 @@ unless marked otherwise.
 - A border crossing as a grievance rather than an attack
 - Survives save/load; staggered evaluations keep the frame cost flat
 
-**Not yet tested in play** (added after the 2026-09-23 run)
+All of the above re-verified on the current build in the run of 2026-09-24,
+which also settled the four fixes that had no evidence behind them:
 
-- Graduated response: every provocation short of sustained attack is a
-  grievance (shot +20, incursion +40, unit destroyed +70); three losses to
-  one faction means war regardless of score
+- **No duplicates** in `Released` / `TotalWar` — 16 war entries across six
+  factions, every one exact (`84f94a6`)
+- **The peace cooldown lasts** — `ProtectedUntil = {43}` and `{44}`, single
+  elements, each `EvalCount + 10`, on both sides of a real ceasefire
+  (`c0e0d49`). It read `{43, 10}` and expired on creation the day before.
+- **The powder keg** — four factions carried kill-grievances against
+  factions they never declared on (`5a0c5c7`)
+- **A 12-evaluation stalemate** fires on schedule: China stood down against
+  the Soviet Union at eval 33, exactly 12 after `WarSince 21` (`ba3b02b`)
+- **The `ON Destroyed anything ATTACKER "X"` hook** registers and attributes
+  correctly to the faction, human players included
+
+**Not yet tested in play**
+
 - EMP as a tactical weapon (the tier worked; no EMP was observed fired)
 - A vital region about to fall authorising strategic **immediately**, gated on
-  invaders ≥ defenders rather than a hold timer
-- No duplicates in `Released` / `TotalWar`
-- A peace cooldown that actually lasts `PEACE_COOLDOWN_EVALS`
-- The `ON Destroyed anything ATTACKER "X"` hook form
+  invaders ≥ defenders rather than a hold timer. This map can only test it on
+  Pakistan, whose one region is 100% of its economy — and only while somebody
+  is invading it in `TotalWar` mode. Pakistan spent a whole game at war with
+  four factions without one of them mounting an invasion, so the path needs
+  to be forced: play India and invade.
 
-**Watch on the next run — the last two interact.** The stalemate peace held
-because `Committed` was charging the Soviet Union −840 and NATO −600 for a
-fifth front, and those counts were *inflated* by the duplicate bug (6 and 5
-entries for 4 wars each). Fixing duplicates lowers `Committed` to −400, while
-fixing the cooldown adds real protection through `EvalCount + 10`. The
-cooldown should now do deliberately what the over-count was doing by
-accident, but confirm a stalemate still holds before calling it settled.
+**`LOSS_WAR_LOSSES` is a long stop, not a normal path.** The "three losses
+means war regardless of score" backstop has never fired and in practice
+almost cannot. `OnAttackedBy` only counts while the attacker is **not**
+already in `Released`, and factions at peace rarely shoot each other at all —
+AI units do not engage a faction they are not at war with unless ordered. So
+the first kill's +70 grievance (or the engine's own contact-war rule) starts
+the war, which closes the guard and freezes the counter at one. Across a
+four-hour ten-faction game, all fifteen nonzero loss counters read exactly 1
+and not one ever reached 2. Left in as a harmless backstop; the README no
+longer advertises it as a normal route to war. If it is ever wanted as a real
+behaviour, the useful version is counting losses *during* a war and using the
+threshold to escalate a limited war into a full one.
 
 ## Engine facts, all learned the hard way
 
@@ -91,7 +109,11 @@ accident, but confirm a stalemate still holds before calling it settled.
   errors.
 - You cannot strike a **city** of a faction you are at peace with (the order
   is silently dropped), but you can strike its **units** — that is how
-  contact wars start.
+  contact wars start. Confirmed from the player's side: bombing NATO
+  installations put the two at war through the **engine**, not the script.
+  The victim's message then reads `at war` (the `RespondToWar` reason), not
+  a scored motive — so a declaration whose reason is `at war` means the
+  engine got there first and the script merely picked a mode for it.
 
 **Weapons**
 

@@ -58,10 +58,16 @@ sustained attack is a grievance that accumulates and decays: a shot that
 destroys nothing (+20), an uninvited border crossing (+40), a unit of ours
 destroyed (+70). A faction with nothing else against you shrugs off a stray
 kill; one that already holds a grudge, a rivalry or a weak border in view
-tips into war on the spot. **Three losses to the same faction means war
-regardless of the score.** Wars entered this way are punitive: rolling
+tips into war on the spot. Wars entered this way are punitive: rolling
 limited strikes, never an invasion by themselves. A war the engine brings a
 faction into on behalf of a permanent ally is fought in full.
+
+There is also a hard backstop — three units lost to the same faction means
+war whatever the score says — but it is a long stop, not a normal path.
+Grievances only accumulate against a faction you are **not** already at war
+with, and factions at peace rarely shoot each other: the first kill's +70
+starts the war by itself, which closes the count. Across a four-hour
+ten-faction game not one loss counter ever reached two.
 
 **Nuclear weapons are a last resort.** Every AI starts with all nuclear
 categories withheld and releases them tier by tier, never taking them back.
