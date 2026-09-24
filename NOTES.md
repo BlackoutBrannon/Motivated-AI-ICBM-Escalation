@@ -191,6 +191,9 @@ faction a different candidate behaviour in a throwaway game.
 
 ## Backlog
 
+Items 1 and 2 are **not backlog any more** — they are the two things the
+release is waiting on. See the checklist at the end.
+
 1. **Multiplayer.** `AllowEventsInMultiplayer` **defaults to `true`** (line 87
    of `Documents\My Games\ICBM-Escalation\ICBM.CFG`, unedited), so events do
    run in MP and the mod should work. Still unverified in an actual session:
@@ -228,14 +231,29 @@ faction a different candidate behaviour in a throwaway game.
       tactical and strategic both earned, no cascade, four factions never
       dragged in)
 - [x] Every behavioural change verified in play
-- [x] **Iron Curtain only** for v1. Earth support is built and works
-      (`$IncludeEarthMap` in `build.ps1`) but the map has never been played,
-      and an untested map in a first release is a support burden for no gain.
 - [x] **Published as "Motivated AI"** (`info.txt`, which is what the game's
       mod list and the Workshop page read). The repo folder is still
       `LessAggressiveAI`; that name is now cosmetic and can be changed
       whenever nothing is running out of it.
+
+**2.5.0 is a complete, shippable Iron Curtain build.** Publication is
+deliberately held back to widen the first release rather than to fix
+anything. Two things to do first:
+
+- [ ] **Earth map.** Flip `$IncludeEarthMap = $true` and play it. The
+      plumbing is verified — ten faction files generate with correct
+      rivalries and staggered offsets — but nobody has played a game on it.
+      Watch the motives that are geography-dependent: land grab (different
+      borders, no Neutral-equivalent with 93 regions), blindness, and the
+      economy percentages behind the nuclear tiers, since Earth's ten
+      factions may not be production-balanced the way Iron Curtain's are.
+- [ ] **Multiplayer with a second player.** `AllowEventsInMultiplayer`
+      defaults to `true`, so events should run. Unknown: whether every
+      client needs the mod (almost certainly yes, or they desync) and
+      whether the host's copy of the setting is the one that counts.
+
+Then:
+
 - [ ] Workshop upload needs a preview image and tags
-- [ ] Say plainly on the Workshop page that co-op needs the mod on **every**
-      client and is lightly tested — better to set the expectation than to
-      field the bug report
+- [ ] Say plainly on the Workshop page which maps are supported and what the
+      co-op requirements are
